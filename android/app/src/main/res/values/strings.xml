@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">ClassMode</string>
+    <string name="profile_normal">Normal</string>
+    <string name="profile_vibrate">Vibrate</string>
+    <string name="profile_silent">Silent</string>
+    <string name="status_automation_active">Automation Active</string>
+    <string name="status_next_class">Next class in %1$d mins</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="section_current_profile">Current Profile</string>
+    <string name="section_automation_health">Automation Health</string>
+    <string name="section_upcoming">Upcoming Schedule</string>
+    <string name="status_healthy">Running Smoothly</string>
+    <string name="status_issue">Issue Detected</string>
+    <string name="btn_focus_now">Focus Now (1h)</string>
+    <string name="btn_clear_override">Clear Override</string>
+    <string name="msg_no_upcoming">No upcoming schedules today.</string>
+    <string name="manual_override_active">Manual Override Active</string>
+    <string name="channel_automation_name">Automation Status</string>
+    <string name="channel_automation_desc">Updates about background sound profile changes</string>
+    <string name="channel_reminders_name">Class Reminders</string>
+    <string name="title_settings">Settings</string>
+    <string name="section_general">General</string>
+    <string name="setting_haptics">Haptic Feedback</string>
+    <string name="setting_default_profile">Default Profile</string>
+    <string name="section_privacy">Privacy &amp; Data</string>
+    <string name="setting_diagnostics">Share Anonymous Diagnostics</string>
+    <string name="setting_diagnostics_desc">Help improve ClassMode by sending crash reports. Always opt-in.</string>
+    <string name="channel_focus_name">Focus Sessions</string>
+    <string name="channel_alarms_name">Alarms</string>
+    <string name="channel_problems_name">Issues &amp; Permissions</string>
+    <string name="status_focus_active">Focus Session Active</string>
+</resources>
+
+

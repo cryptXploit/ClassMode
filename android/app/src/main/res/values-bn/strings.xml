@@ -1,0 +1,34 @@
+﻿<resources>
+    <string name="app_name">ক্লাসমোড</string>
+    <string name="profile_normal">সাধারণ</string>
+    <string name="profile_vibrate">ভাইব্রেট</string>
+    <string name="profile_silent">সাইলেন্ট</string>
+    <string name="status_automation_active">অটোমেশন চালু আছে</string>
+    <string name="status_next_class">পরবর্তী ক্লাস %1$d মিনিট পর</string>
+    <string name="title_dashboard">ড্যাশবোর্ড</string>
+    <string name="section_current_profile">বর্তমান প্রোফাইল</string>
+    <string name="section_automation_health">অটোমেশন স্ট্যাটাস</string>
+    <string name="section_upcoming">আসন্ন শিডিউল</string>
+    <string name="status_healthy">সঠিকভাবে চলছে</string>
+    <string name="status_issue">সমস্যা পাওয়া গেছে</string>
+    <string name="btn_focus_now">ফোকাস করুন (১ ঘণ্টা)</string>
+    <string name="btn_clear_override">ওভাররাইড বাতিল করুন</string>
+    <string name="msg_no_upcoming">আজ কোনো শিডিউল নেই।</string>
+    <string name="manual_override_active">ম্যানুয়াল ওভাররাইড চালু আছে</string>
+    <string name="channel_automation_name">অটোমেশন স্ট্যাটাস</string>
+    <string name="channel_automation_desc">ব্যাকগ্রাউন্ড সাউন্ড প্রোফাইল পরিবর্তন সম্পর্কে আপডেট</string>
+    <string name="channel_reminders_name">ক্লাস রিমাইন্ডার</string>
+    <string name="title_settings">সেটিংস</string>
+    <string name="section_general">সাধারণ</string>
+    <string name="setting_haptics">হ্যাপটিক ফিডব্যাক</string>
+    <string name="setting_default_profile">ডিফল্ট প্রোফাইল</string>
+    <string name="section_privacy">গোপনীয়তা ও ডেটা</string>
+    <string name="setting_diagnostics">অজ্ঞাত ডায়াগনস্টিক শেয়ার করুন</string>
+    <string name="setting_diagnostics_desc">ক্র্যাশ রিপোর্ট পাঠিয়ে ক্লাসমোডের উন্নতিতে সাহায্য করুন। এটি ঐচ্ছিক।</string>
+    <string name="channel_focus_name">ফোকাস সেশন</string>
+    <string name="channel_alarms_name">অ্যালার্ম</string>
+    <string name="channel_problems_name">সমস্যা এবং অনুমতি</string>
+    <string name="status_focus_active">ফোকাস সেশন চলছে</string>
+</resources>
+
+
