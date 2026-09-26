@@ -170,10 +170,16 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
 
             // Quick Actions
             Text(
-                "Quick Actions",
+                "Quick Actions (Manual Override)",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 8.dp)
+            )
+            Text(
+                "Tap below to instantly force your phone's sound mode without waiting for a schedule.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),

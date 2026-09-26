@@ -1,4 +1,4 @@
-﻿package com.classmode.domain.automation
+package com.classmode.domain.automation
 
 import com.classmode.data.local.dao.AutomationEventDao
 import com.classmode.data.local.entity.AutomationEventEntity
@@ -27,6 +27,7 @@ class AutomationOrchestrator(
     private val hapticController: SystemHapticController
 ) {
     private var lastActiveSessionId: String? = null
+    private var isManualOverrideActive: Boolean = false
 
     fun start(scope: CoroutineScope) {
         contextEngine.observeContext()
@@ -34,7 +35,22 @@ class AutomationOrchestrator(
                 val targetProfile = ruleResolver.resolve(snapshot)
                 val activeSession = snapshot.activeSessions.firstOrNull()
                 val currentSessionId = activeSession?.id
+                val hasUserOverride = snapshot.userOverride != null
                 
+                if (hasUserOverride) {
+                    val currentPhysicalProfile = audioController.getCurrentProfile()
+                    if (currentPhysicalProfile != targetProfile) {
+                        audioController.applyProfile(targetProfile)
+                        hapticController.performAutomationTransitionEffect()
+                    }
+                    isManualOverrideActive = true
+                    return@onEach
+                }
+                
+                if (isManualOverrideActive && !hasUserOverride) {
+                    isManualOverrideActive = false
+                }
+
                 if (currentSessionId != null && targetProfile != SoundProfile.NORMAL) {
                     if (currentSessionId != lastActiveSessionId) {
                         // New session started or transitioned
@@ -51,10 +67,7 @@ class AutomationOrchestrator(
                         // Ongoing session
                         val currentPhysicalProfile = audioController.getCurrentProfile()
                         if (currentPhysicalProfile != targetProfile && currentPhysicalProfile == SoundProfile.NORMAL) {
-                            // Manual override - we respect it and don't re-apply
-                            // We can also clear the notification if overridden? 
-                            // Requirements: Do not use notifications as fake evidence that automation succeeded.
-                            // If overridden, maybe we should still show it as "overridden"? Or cancel it.
+                            // User manually changed physical volume button - respect it
                         }
                     }
                 } else {

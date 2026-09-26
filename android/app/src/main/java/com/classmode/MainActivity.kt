@@ -1,6 +1,11 @@
-﻿package com.classmode
+package com.classmode
 
 import android.os.Bundle
+import android.content.Intent
+import android.app.NotificationManager
+import android.provider.Settings
+import android.content.Context
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +31,15 @@ import com.classmode.presentation.main.MainScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Auto popup for DND permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (!notificationManager.isNotificationPolicyAccessGranted) {
+                val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                startActivity(intent)
+            }
+        }
         
         // Manual Dependency Injection Factory
         val factory = object : ViewModelProvider.Factory {
@@ -52,7 +66,7 @@ class MainActivity : ComponentActivity() {
                     }
                     modelClass.isAssignableFrom(LocationViewModel::class.java) -> {
                         @Suppress("UNCHECKED_CAST")
-                        LocationViewModel(app.database.geofenceDao(), app.geofenceManager) as T
+                        LocationViewModel(app.database.geofenceDao(), app.geofenceManager, app.database.scheduleDao(), app.preferencesManager) as T
                     }
                                         modelClass.isAssignableFrom(AlarmViewModel::class.java) -> {
                         @Suppress("UNCHECKED_CAST")
@@ -117,6 +131,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 
 
 
