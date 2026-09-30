@@ -1,4 +1,4 @@
-﻿package com.classmode.presentation.location
+package com.classmode.presentation.location
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -52,6 +52,8 @@ fun LocationScreen(
     onAddGeofence: (Double, Double, Float) -> Unit,
     onDeleteGeofence: (GeofenceEntity) -> Unit
 ) {
+    var geofenceToDelete by remember { mutableStateOf<GeofenceEntity?>(null) }
+    val haptic = LocalHaptic.current
     var isAddingNew by remember { mutableStateOf(false) }
     val context = LocalContext.current
     
