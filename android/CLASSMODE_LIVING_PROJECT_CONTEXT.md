@@ -26,6 +26,7 @@ The application uses a complete MaterialTheme design system.
 - **Colors:** Color.kt has been established with a professional, premium Light/Dark color palette (deep primary blues/purples and clean surface colors). Theme.kt supports these proper Light/Dark palettes and dynamic color injection.
 - **Typography:** Type.kt has been established with a standard Material 3 Typography scale (display, title, body, label).
 - **Components:** Basic standard Material 3 composables using the unified custom design system.
+- **Shared Components:** Reusable DestructiveConfirmationDialog and EmptyStateView components are available in the components package for standardizing deletions and empty states across screens.
 
 ## Haptic Architecture
 SystemHapticController provides two core OS-level feedback mechanisms:
@@ -40,6 +41,7 @@ The haptic controller is now exposed to the Compose UI layer globally via LocalH
 - Implement destructive action confirmations (e.g., Delete Schedule dialogs).
 - Unify the UI Design System (Colors, Typography, standardized Cards).
 - Complete Bengali string localization for remaining nested UI elements.
+
 
 
 

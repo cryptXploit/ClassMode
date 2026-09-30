@@ -61,7 +61,10 @@
     <string name="nav_others">অন্যান্য</string>
     <string name="title_focus_mode">ফোকাস মোড</string>
     <string name="title_custom_alarms">কাস্টম অ্যালার্ম</string>
+    <string name="action_delete_confirm">মুছুন</string>
+    <string name="title_warning">সতর্কতা</string>
 </resources>
+
 
 
 
