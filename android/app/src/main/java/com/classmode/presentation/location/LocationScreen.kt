@@ -29,6 +29,12 @@ import com.classmode.presentation.theme.LocalHaptic
 import com.classmode.R
 
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import android.preference.PreferenceManager
+import com.classmode.data.local.entity.GeofenceEntity
+import androidx.compose.foundation.clickable
 import com.google.android.gms.location.LocationServices
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
@@ -324,5 +330,6 @@ fun FullScreenMapSelector(
         }
     }
 }
+
 
 
