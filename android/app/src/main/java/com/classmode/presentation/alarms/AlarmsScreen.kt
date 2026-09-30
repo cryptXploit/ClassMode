@@ -194,36 +194,76 @@ fun AlarmItemCard(alarm: AlarmDomainModel, onToggle: (Boolean) -> Unit, onDelete
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddAlarmDialog(onDismiss: () -> Unit, onAdd: (Int, Int, String, Boolean, Int) -> Unit) {
     var label by remember { mutableStateOf("") }
-    val timeState = rememberTimePickerState(initialHour = 8, initialMinute = 0)
+    var hour by remember { mutableStateOf(8) }
+    var minute by remember { mutableStateOf(0) }
     var selectedDays by remember { mutableStateOf(0) }
     var vibrate by remember { mutableStateOf(true) }
+    
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val is24Hour = android.text.format.DateFormat.is24HourFormat(context)
+
+    val timePickerDialog = remember {
+        android.app.TimePickerDialog(
+            context,
+            { _, selectedHour, selectedMinute ->
+                hour = selectedHour
+                minute = selectedMinute
+            },
+            hour,
+            minute,
+            is24Hour
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.fillMaxWidth(),
-        title = { Text("Set New Alarm", fontWeight = FontWeight.Bold) },
+        title = { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.title_set_alarm), fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                TimePicker(state = timeState)
+                // Clickable Time Display
+                val amPm = if (hour >= 12) "PM" else "AM"
+                val displayHour = if (is24Hour) hour else if (hour % 12 == 0) 12 else hour % 12
+                val timeString = if (is24Hour) {
+                    String.format(java.util.Locale.US, "%02d:%02d", hour, minute)
+                } else {
+                    String.format(java.util.Locale.US, "%02d:%02d %s", displayHour, minute, amPm)
+                }
+
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { timePickerDialog.show() }
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = timeString,
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Light,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
                 
                 OutlinedTextField(
                     value = label,
                     onValueChange = { label = it },
-                    label = { Text("Alarm Label (Optional)") },
+                    label = { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_alarm_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text("Repeat Days", style = MaterialTheme.typography.labelLarge)
+                    Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_repeat_days), style = MaterialTheme.typography.labelLarge)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                         val days = listOf("S", "M", "T", "W", "T", "F", "S")
@@ -254,21 +294,22 @@ fun AddAlarmDialog(onDismiss: () -> Unit, onAdd: (Int, Int, String, Boolean, Int
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Vibrate", style = MaterialTheme.typography.bodyLarge)
+                    Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_vibrate), style = MaterialTheme.typography.bodyLarge)
                     Switch(checked = vibrate, onCheckedChange = { vibrate = it })
                 }
             }
         },
         confirmButton = {
             Button(onClick = {
-                val timeMins = timeState.hour * 60 + timeState.minute
+                val timeMins = hour * 60 + minute
                 onAdd(timeMins, selectedDays, label.ifEmpty { "Alarm" }, vibrate, 5)
-            }) { Text("Save Alarm") }
+            }) { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_save_alarm)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_cancel)) }
         }
     )
 }
+
 
 

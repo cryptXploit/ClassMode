@@ -1,4 +1,4 @@
-package com.classmode
+﻿package com.classmode
 
 import android.os.Bundle
 import android.content.Intent
@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
                             ruleResolver = app.ruleResolver,
                             healthMonitor = app.healthMonitor,
                             preferencesManager = app.preferencesManager,
+                            systemAlarmScheduler = com.classmode.data.system.SystemAlarmScheduler(this@MainActivity, app.healthMonitor),
                             hapticController = app.systemHapticController
                         ) as T
                     }
@@ -131,6 +132,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 
 
 

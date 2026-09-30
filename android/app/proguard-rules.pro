@@ -1,4 +1,4 @@
-# Preserve Room database models and DAOs
+﻿# Preserve Room database models and DAOs
 -keep class com.classmode.data.local.entity.** { *; }
 -keep class com.classmode.data.local.dao.** { *; }
 
@@ -19,3 +19,6 @@
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
+
+# Preserve System Receivers declared in AndroidManifest
+-keep class com.classmode.data.receiver.** { *; }

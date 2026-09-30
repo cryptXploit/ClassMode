@@ -38,9 +38,10 @@ class ClassModeApplication : Application() {
 
         
         // Initialize Core Dependencies
+        healthMonitor = AutomationHealthMonitor()
         preferencesManager = PreferencesManager(this)
         database = AppDatabase.getDatabase(this)
-        systemAudioController = SystemAudioController(this)
+        systemAudioController = SystemAudioController(this, healthMonitor)
         geofenceManager = com.classmode.data.system.GeofenceManager(this)
         restoreStateRepository = RestoreStateRepository(this)
         systemNotificationManager = SystemNotificationManager(this)
@@ -56,7 +57,6 @@ class ClassModeApplication : Application() {
         )
         
         ruleResolver = RuleResolver()
-        healthMonitor = AutomationHealthMonitor()
         
         restoreStateManager = RestoreStateManager(
             audioController = systemAudioController,
@@ -77,3 +77,4 @@ class ClassModeApplication : Application() {
         orchestrator.start(kotlinx.coroutines.GlobalScope)
     }
 }
+

@@ -15,11 +15,14 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.classmode.data.system.SystemHapticController
 
+import com.classmode.data.system.SystemAlarmScheduler
+
 class DashboardViewModel(
     private val contextEngine: ContextEngine,
     private val ruleResolver: RuleResolver,
     private val healthMonitor: AutomationHealthMonitor,
     private val preferencesManager: com.classmode.data.preferences.PreferencesManager,
+    private val systemAlarmScheduler: SystemAlarmScheduler,
     private val hapticController: SystemHapticController
 ) : ViewModel() {
 
@@ -46,10 +49,16 @@ class DashboardViewModel(
             initialValue = HealthStatus()
         )
 
-    fun setTemporaryOverride(profile: SoundProfile) {
+    fun setTemporaryOverride(profile: SoundProfile, durationMillis: Long = 0L) {
         viewModelScope.launch {
             hapticController.performClickEffect()
-            preferencesManager.setUserOverride(profile)
+            val expiryTime = if (durationMillis > 0) System.currentTimeMillis() + durationMillis else 0L
+            preferencesManager.setUserOverride(profile, expiryTime)
+            if (expiryTime > 0) {
+                systemAlarmScheduler.scheduleOverrideClear(expiryTime)
+            } else {
+                systemAlarmScheduler.cancelOverrideClear()
+            }
         }
     }
 
@@ -57,6 +66,10 @@ class DashboardViewModel(
         viewModelScope.launch {
             hapticController.performClickEffect()
             preferencesManager.setUserOverride(null)
+            systemAlarmScheduler.cancelOverrideClear()
         }
     }
 }
+
+
+

@@ -40,7 +40,7 @@ fun SchedulesScreen(viewModel: ScheduleViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Schedules", fontWeight = FontWeight.Bold) },
+                title = { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.title_schedules), fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.primary
@@ -121,16 +121,16 @@ fun ScheduleItemCard(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete Schedule") },
-            text = { Text("Are you sure you want to delete '${if (schedule.title.isNotBlank()) schedule.title else schedule.type.name}'?") },
+            title = { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.title_delete_schedule)) },
+            text = { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.msg_delete_schedule, if(schedule.title.isNotBlank()) schedule.title else schedule.type.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     onDelete()
                     showDeleteConfirm = false
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_cancel)) }
             }
         )
     }
@@ -235,7 +235,7 @@ fun ScheduleItemCard(
                     IconButton(onClick = { showDeleteConfirm = true }) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Delete",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.classmode.R.string.action_delete),
                             tint = MaterialTheme.colorScheme.error
                         )
                     }
@@ -298,12 +298,12 @@ fun ScheduleEditorDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Class Title (e.g., Mathematics)") },
+                    label = { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_class_title)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
 
-                Text("Session Type", style = MaterialTheme.typography.labelLarge)
+                Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_session_type), style = MaterialTheme.typography.labelLarge)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SessionType.values().filter { it != SessionType.MANUAL_OVERRIDE }.forEach { type ->
                         FilterChip(
@@ -319,21 +319,21 @@ fun ScheduleEditorDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     OutlinedButton(onClick = { showStartTimePicker = true }) {
-                        Text(String.format("Start: %02d:%02d", startTimeState.hour, startTimeState.minute))
+                        Text(String.format(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_start_time), startTimeState.hour, startTimeState.minute))
                     }
                     OutlinedButton(onClick = { showEndTimePicker = true }) {
-                        Text(String.format("End: %02d:%02d", endTimeState.hour, endTimeState.minute))
+                        Text(String.format(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_end_time), endTimeState.hour, endTimeState.minute))
                     }
                 }
                 
                 // End time validation check
                 val startMins = startTimeState.hour * 60 + startTimeState.minute
                 val endMins = endTimeState.hour * 60 + endTimeState.minute
-                if (endMins <= startMins && endMins != 0) {
-                    Text("End time must be after start time", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                if (endMins == startMins) {
+                    Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.error_time_same), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
 
-                Text("Repeat Days", style = MaterialTheme.typography.labelLarge)
+                Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_repeat_days), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                     val days = listOf("S", "M", "T", "W", "T", "F", "S")
                     for (i in 0..6) {
@@ -354,10 +354,10 @@ fun ScheduleEditorDialog(
                     }
                 }
                 if (selectedDays == 0) {
-                    Text("Select at least one day", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.error_no_days), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
 
-                Text("Sound Profile", style = MaterialTheme.typography.labelLarge)
+                Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_sound_profile), style = MaterialTheme.typography.labelLarge)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SoundProfile.values().forEach { profile ->
                         FilterChip(
@@ -368,7 +368,7 @@ fun ScheduleEditorDialog(
                     }
                 }
 
-                Text("Condition", style = MaterialTheme.typography.labelLarge)
+                Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_condition), style = MaterialTheme.typography.labelLarge)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AutomationRuleCondition.values().toList().forEach { cond ->
                         FilterChip(
@@ -380,17 +380,60 @@ fun ScheduleEditorDialog(
                 }
                 
                 if (condition == AutomationRuleCondition.LOCATION_ONLY || condition == AutomationRuleCondition.TIME_AND_LOCATION || condition == AutomationRuleCondition.TIME_OR_LOCATION) {
+                    
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+                        androidx.compose.ui.viewinterop.AndroidView(
+                            factory = { ctx ->
+                                org.osmdroid.views.MapView(ctx).apply {
+                                    setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+                                    setMultiTouchControls(true)
+                                    controller.setZoom(15.0)
+                                    controller.setCenter(org.osmdroid.util.GeoPoint(23.8103, 90.4125)) // Default center
+                                    
+                                    val mapEventsOverlay = org.osmdroid.views.overlay.MapEventsOverlay(object : org.osmdroid.events.MapEventsReceiver {
+                                        override fun singleTapConfirmedHelper(p: org.osmdroid.util.GeoPoint?): Boolean {
+                                            p?.let {
+                                                lat = String.format(java.util.Locale.US, "%.6f", it.latitude)
+                                                lon = String.format(java.util.Locale.US, "%.6f", it.longitude)
+                                            }
+                                            return true
+                                        }
+                                        override fun longPressHelper(p: org.osmdroid.util.GeoPoint?): Boolean = false
+                                    })
+                                    overlays.add(mapEventsOverlay)
+                                }
+                            },
+                            update = { view ->
+                                // Remove previous markers
+                                view.overlays.removeAll { it is org.osmdroid.views.overlay.Marker }
+                                
+                                val currentLat = lat.toDoubleOrNull()
+                                val currentLon = lon.toDoubleOrNull()
+                                if (currentLat != null && currentLon != null) {
+                                    val point = org.osmdroid.util.GeoPoint(currentLat, currentLon)
+                                    val marker = org.osmdroid.views.overlay.Marker(view)
+                                    marker.position = point
+                                    marker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM)
+                                    view.overlays.add(marker)
+                                    view.controller.setCenter(point)
+                                }
+                                view.invalidate()
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+
                     OutlinedTextField(
                         value = lat,
                         onValueChange = { lat = it },
-                        label = { Text("Latitude") },
+                        label = { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_latitude)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = lon,
                         onValueChange = { lon = it },
-                        label = { Text("Longitude") },
+                        label = { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_longitude)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -403,7 +446,7 @@ fun ScheduleEditorDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(onClick = onDismiss) { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_cancel)) }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
@@ -420,11 +463,11 @@ fun ScheduleEditorDialog(
                             )
                             onConfirm(entity, if (condition == AutomationRuleCondition.TIME_ONLY) null else com.classmode.data.local.entity.GeofenceEntity(ruleId = entity.id, latitude = lat.toDouble(), longitude = lon.toDouble(), radiusMeters = 100f))
                         },
-                        enabled = selectedDays > 0 && title.isNotBlank() && (endMins > startMins || endMins == 0) && (
+                        enabled = selectedDays > 0 && title.isNotBlank() && (endMins != startMins) && (
                             condition == AutomationRuleCondition.TIME_ONLY || (lat.isNotBlank() && lon.isNotBlank() && lat.toDoubleOrNull() != null && lon.toDoubleOrNull() != null)
                         )
                     ) {
-                        Text("Save")
+                        Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_save))
                     }
                 }
             }
@@ -458,10 +501,11 @@ fun TimePickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onConfirm) { Text("OK") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_ok)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_cancel)) } },
         text = { content() }
     )
 }
+
 
 

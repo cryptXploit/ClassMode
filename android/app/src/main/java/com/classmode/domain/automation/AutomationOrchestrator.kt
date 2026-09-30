@@ -1,4 +1,4 @@
-package com.classmode.domain.automation
+﻿package com.classmode.domain.automation
 
 import com.classmode.data.local.dao.AutomationEventDao
 import com.classmode.data.local.entity.AutomationEventEntity
@@ -28,6 +28,7 @@ class AutomationOrchestrator(
 ) {
     private var lastActiveSessionId: String? = null
     private var isManualOverrideActive: Boolean = false
+    private var lastDefaultPreference: SoundProfile? = null
 
     fun start(scope: CoroutineScope) {
         contextEngine.observeContext()
@@ -36,6 +37,9 @@ class AutomationOrchestrator(
                 val activeSession = snapshot.activeSessions.firstOrNull()
                 val currentSessionId = activeSession?.id
                 val hasUserOverride = snapshot.userOverride != null
+                
+                val defaultPreferenceChanged = lastDefaultPreference != null && lastDefaultPreference != snapshot.defaultPreference
+                lastDefaultPreference = snapshot.defaultPreference
                 
                 if (hasUserOverride) {
                     val currentPhysicalProfile = audioController.getCurrentProfile()
@@ -51,7 +55,7 @@ class AutomationOrchestrator(
                     isManualOverrideActive = false
                 }
 
-                if (currentSessionId != null && targetProfile != SoundProfile.NORMAL) {
+                if (currentSessionId != null) {
                     if (currentSessionId != lastActiveSessionId) {
                         // New session started or transitioned
                         restoreStateManager.captureAndApply(currentSessionId, targetProfile)
@@ -71,7 +75,7 @@ class AutomationOrchestrator(
                         }
                     }
                 } else {
-                    // No active session or resolved to Normal
+                    // No active session
                     if (lastActiveSessionId != null) {
                         // Session ended
                         restoreStateManager.evaluateAndRestore(lastActiveSessionId!!)
@@ -81,6 +85,13 @@ class AutomationOrchestrator(
                         // Cancel automation notification
                         notificationManager.cancelAutomationStatus()
                         hapticController.performAutomationTransitionEffect()
+                    } else if (defaultPreferenceChanged) {
+                        // Dynamically propagate default profile change if no class is running
+                        val currentPhysicalProfile = audioController.getCurrentProfile()
+                        if (currentPhysicalProfile != targetProfile) {
+                            audioController.applyProfile(targetProfile)
+                            hapticController.performAutomationTransitionEffect()
+                        }
                     }
                 }
             }
@@ -97,5 +108,6 @@ class AutomationOrchestrator(
         eventDao.insertEvent(event)
     }
 }
+
 
 

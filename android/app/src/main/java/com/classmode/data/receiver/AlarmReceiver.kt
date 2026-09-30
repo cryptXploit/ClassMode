@@ -21,6 +21,7 @@ class AlarmReceiver : BroadcastReceiver() {
         const val EXTRA_SESSION_ID = "extra_session_id"
         const val ACTION_ALARM_RING = "com.classmode.ACTION_ALARM_RING"
         const val EXTRA_ALARM_ID = "extra_alarm_id"
+        const val ACTION_CLEAR_OVERRIDE = "com.classmode.ACTION_CLEAR_OVERRIDE"
     }
 
         override fun onReceive(context: Context, intent: Intent) {
@@ -30,11 +31,19 @@ class AlarmReceiver : BroadcastReceiver() {
         val alarmScheduler = SystemAlarmScheduler(context, app.healthMonitor)
         
         when (intent.action) {
+            ACTION_CLEAR_OVERRIDE -> {
+                Log.i("AlarmReceiver", "Triggered manual override clear")
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        app.preferencesManager.setUserOverride(null)
+                    } catch (e: Exception) {
+                        Log.e("AlarmReceiver", "Failed to clear override", e)
+                    }
+                }
+            }
             ACTION_ALARM_RING -> {
                 val alarmIdStr = intent.getStringExtra(EXTRA_ALARM_ID) ?: return
                 val alarmId = alarmIdStr.toLongOrNull() ?: return
-                Log.i("AlarmReceiver", "Triggered ring for alarm: $alarmId")
-                
                 val ringIntent = Intent(context, Class.forName("com.classmode.presentation.alarms.AlarmRingingActivity")).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                     putExtra(EXTRA_ALARM_ID, alarmIdStr)
@@ -70,7 +79,6 @@ class AlarmReceiver : BroadcastReceiver() {
             ACTION_CLASS_START -> {
                 val sessionIdStr = intent.getStringExtra(EXTRA_SESSION_ID) ?: return
                 val sessionId = sessionIdStr.toLongOrNull() ?: return
-                Log.i("AlarmReceiver", "Triggered start for session: $sessionId")
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         var state = triggerStateDao.getState(sessionId)
@@ -89,7 +97,6 @@ class AlarmReceiver : BroadcastReceiver() {
             ACTION_CLASS_END -> {
                 val sessionIdStr = intent.getStringExtra(EXTRA_SESSION_ID) ?: return
                 val sessionId = sessionIdStr.toLongOrNull() ?: return
-                Log.i("AlarmReceiver", "Triggered end for session: $sessionId")
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         triggerStateDao.updateTimeState(sessionId, false, System.currentTimeMillis())
@@ -106,7 +113,6 @@ class AlarmReceiver : BroadcastReceiver() {
             ACTION_CLASS_REMINDER -> {
                 val sessionIdStr = intent.getStringExtra(EXTRA_SESSION_ID) ?: return
                 val sessionId = sessionIdStr.toLongOrNull() ?: return
-                Log.i("AlarmReceiver", "Triggered reminder for session: $sessionId")
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val schedule = scheduleDao.getScheduleById(sessionId)
@@ -137,6 +143,8 @@ class AlarmReceiver : BroadcastReceiver() {
         }
     }
 }
+
+
 
 
 

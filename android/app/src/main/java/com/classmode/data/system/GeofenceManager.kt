@@ -1,4 +1,4 @@
-package com.classmode.data.system
+﻿package com.classmode.data.system
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -51,7 +51,6 @@ class GeofenceManager(private val context: Context) {
 
         return try {
             geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent).await()
-            Log.d("GeofenceManager", "Successfully registered geofence: ${geofenceEntity.ruleId}")
             true
         } catch (e: Exception) {
             Log.e("GeofenceManager", "Failed to register geofence", e)
@@ -62,7 +61,6 @@ class GeofenceManager(private val context: Context) {
     suspend fun removeGeofence(ruleId: Long): Boolean {
         return try {
             geofencingClient.removeGeofences(listOf(ruleId.toString())).await()
-            Log.d("GeofenceManager", "Successfully removed geofence: $ruleId")
             true
         } catch (e: Exception) {
             Log.e("GeofenceManager", "Failed to remove geofence", e)
@@ -87,4 +85,5 @@ class GeofenceManager(private val context: Context) {
         return fineLocation && backgroundLocation
     }
 }
+
 

@@ -12,7 +12,7 @@ data class ActiveSession(
     val id: String,
     val type: SessionType,
     val isUserInitiated: Boolean,
-    val soundProfile: SoundProfile
+    val requestedProfile: SoundProfile
 )
 
 data class ContextSnapshot(

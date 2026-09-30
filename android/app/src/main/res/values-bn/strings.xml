@@ -29,6 +29,36 @@
     <string name="channel_alarms_name">অ্যালার্ম</string>
     <string name="channel_problems_name">সমস্যা এবং অনুমতি</string>
     <string name="status_focus_active">ফোকাস সেশন চলছে</string>
+    <string name="title_schedules">শিডিউল</string>
+    <string name="title_delete_schedule">শিডিউল মুছুন</string>
+    <string name="msg_delete_schedule">আপনি কি নিশ্চিত যে আপনি \'%1$s\' মুছতে চান?</string>
+    <string name="action_delete">মুছুন</string>
+    <string name="action_cancel">বাতিল</string>
+    <string name="action_save">সংরক্ষণ করুন</string>
+    <string name="action_ok">ঠিক আছে</string>
+    <string name="label_class_title">ক্লাসের নাম (যেমন, গণিত)</string>
+    <string name="label_session_type">সেশনের ধরন</string>
+    <string name="label_start_time">শুরু: %1$02d:%2$02d</string>
+    <string name="label_end_time">শেষ: %1$02d:%2$02d</string>
+    <string name="error_time_same">শেষের সময় শুরুর সময়ের সমান হতে পারে না</string>
+    <string name="label_repeat_days">পুনরাবৃত্তির দিনগুলি</string>
+    <string name="error_no_days">অন্তত একটি দিন নির্বাচন করুন</string>
+    <string name="label_sound_profile">সাউন্ড প্রোফাইল</string>
+    <string name="label_condition">শর্ত</string>
+    <string name="label_latitude">অক্ষাংশ</string>
+    <string name="label_longitude">দ্রাঘিমাংশ</string>
+    <string name="title_set_alarm">নতুন অ্যালার্ম সেট করুন</string>
+    <string name="label_alarm_label">অ্যালার্ম লেবেল (ঐচ্ছিক)</string>
+    <string name="label_vibrate">ভাইব্রেট</string>
+    <string name="action_save_alarm">অ্যালার্ম সংরক্ষণ করুন</string>
+    <string name="title_locations">ক্লাসরুমের অবস্থান</string>
+    <string name="msg_no_locations">কোনো অবস্থান কনফিগার করা নেই। একটি ক্লাসরুম যোগ করতে + চাপুন।</string>
+    <string name="label_classroom_rule">ক্লাসরুম (নিয়ম %1$d)</string>
+    <string name="label_radius">ব্যাসার্ধ: %1$dm</string>
+    <string name="title_select_radius">ব্যাসার্ধ নির্বাচন করুন</string>
+    <string name="action_set_location">ক্লাসরুমের অবস্থান সেট করুন</string>
+    <string name="msg_tap_map">অবস্থান নির্বাচন করতে মানচিত্রে চাপুন</string>
 </resources>
+
 
 

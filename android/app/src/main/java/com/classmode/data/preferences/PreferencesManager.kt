@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -19,6 +20,7 @@ class PreferencesManager(private val context: Context) {
         val DEFAULT_PROFILE = stringPreferencesKey("default_profile")
         val IS_AUTOMATION_ENABLED = booleanPreferencesKey("is_automation_enabled")
         val USER_OVERRIDE = stringPreferencesKey("user_override")
+        val OVERRIDE_EXPIRY_TIME = longPreferencesKey("override_expiry_time")
         val KEY_DIAGNOSTICS_OPT_IN = booleanPreferencesKey("diagnostics_opt_in")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val LANGUAGE = stringPreferencesKey("language")
@@ -33,9 +35,13 @@ class PreferencesManager(private val context: Context) {
         SoundProfile.valueOf(profileName)
     }
 
-    val userOverrideFlow: Flow<SoundProfile?> = context.dataStore.data.map { preferences ->
+        val userOverrideFlow: Flow<SoundProfile?> = context.dataStore.data.map { preferences ->
         val overrideName = preferences[USER_OVERRIDE]
         if (overrideName != null) SoundProfile.valueOf(overrideName) else null
+    }
+
+    val overrideExpiryTimeFlow: Flow<Long> = context.dataStore.data.map { preferences ->
+        preferences[OVERRIDE_EXPIRY_TIME] ?: 0L
     }
 
     val isAutomationEnabledFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
@@ -84,12 +90,14 @@ class PreferencesManager(private val context: Context) {
         context.dataStore.edit { it.clear() }
     }
 
-    suspend fun setUserOverride(profile: SoundProfile?) {
+        suspend fun setUserOverride(profile: SoundProfile?, expiryTime: Long = 0L) {
         context.dataStore.edit { preferences ->
             if (profile != null) {
                 preferences[USER_OVERRIDE] = profile.name
+                preferences[OVERRIDE_EXPIRY_TIME] = expiryTime
             } else {
                 preferences.remove(USER_OVERRIDE)
+                preferences.remove(OVERRIDE_EXPIRY_TIME)
             }
         }
     }

@@ -92,7 +92,7 @@ fun LocationScreen(
         )
     } else {
         Scaffold(
-            topBar = { TopAppBar(title = { Text("Classroom Locations") }) },
+            topBar = { TopAppBar(title = { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.title_locations)) }) },
             floatingActionButton = {
                 FloatingActionButton(onClick = { 
                     if (!hasFineLocation) {
@@ -127,7 +127,7 @@ fun LocationScreen(
 
                 if (geofences.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No locations configured. Tap + to add a classroom.")
+                        Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.msg_no_locations))
                     }
                 } else {
                     LazyColumn(
@@ -142,8 +142,8 @@ fun LocationScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column {
-                                        Text("Classroom (Rule ${geofence.ruleId})", style = MaterialTheme.typography.titleMedium)
-                                        Text("Radius: ${geofence.radiusMeters.toInt()}m", style = MaterialTheme.typography.bodyMedium)
+                                        Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_classroom_rule, geofence.ruleId), style = MaterialTheme.typography.titleMedium)
+                                        Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_radius, geofence.radiusMeters.toInt()), style = MaterialTheme.typography.bodyMedium)
                                     }
                                     IconButton(onClick = { onDeleteGeofence(geofence) }) {
                                         Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
@@ -204,20 +204,20 @@ fun FullScreenMapSelector(
                         controller.setCenter(GeoPoint(23.8103, 90.4125))
                     }
                     mapView = this
+                    
+                    val mapEventsOverlay = MapEventsOverlay(object : MapEventsReceiver {
+                        override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
+                            p?.let { selectedLocation = it }
+                            return true
+                        }
+                        override fun longPressHelper(p: GeoPoint?): Boolean = false
+                    })
+                    overlays.add(mapEventsOverlay)
                 }
             },
             update = { view ->
-                view.overlays.clear()
-                
-                // Add Map Events for tap to move marker
-                val mapEventsOverlay = MapEventsOverlay(object : MapEventsReceiver {
-                    override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
-                        p?.let { selectedLocation = it }
-                        return true
-                    }
-                    override fun longPressHelper(p: GeoPoint?): Boolean = false
-                })
-                view.overlays.add(mapEventsOverlay)
+                // Remove dynamic overlays only
+                view.overlays.removeAll { it is Polygon || it is Marker }
 
                 // Add Marker and Circle
                 selectedLocation?.let { point ->
@@ -274,7 +274,7 @@ fun FullScreenMapSelector(
             elevation = CardDefaults.cardElevation(8.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Select Radius", style = MaterialTheme.typography.titleMedium)
+                Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.title_select_radius), style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -299,9 +299,10 @@ fun FullScreenMapSelector(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = selectedLocation != null
                 ) {
-                    Text(if (selectedLocation != null) "Set Classroom Location" else "Tap map to select location")
+                    Text(if (selectedLocation != null) androidx.compose.ui.res.stringResource(com.classmode.R.string.action_set_location) else androidx.compose.ui.res.stringResource(com.classmode.R.string.msg_tap_map))
                 }
             }
         }
     }
 }
+

@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
     <string name="app_name">ClassMode</string>
     <string name="profile_normal">Normal</string>
     <string name="profile_vibrate">Vibrate</string>
@@ -29,6 +29,36 @@
     <string name="channel_alarms_name">Alarms</string>
     <string name="channel_problems_name">Issues &amp; Permissions</string>
     <string name="status_focus_active">Focus Session Active</string>
+    <string name="title_schedules">Schedules</string>
+    <string name="title_delete_schedule">Delete Schedule</string>
+    <string name="msg_delete_schedule">Are you sure you want to delete \'%1$s\'?</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_ok">OK</string>
+    <string name="label_class_title">Class Title (e.g., Mathematics)</string>
+    <string name="label_session_type">Session Type</string>
+    <string name="label_start_time">Start: %1$02d:%2$02d</string>
+    <string name="label_end_time">End: %1$02d:%2$02d</string>
+    <string name="error_time_same">End time cannot be the same as start time</string>
+    <string name="label_repeat_days">Repeat Days</string>
+    <string name="error_no_days">Select at least one day</string>
+    <string name="label_sound_profile">Sound Profile</string>
+    <string name="label_condition">Condition</string>
+    <string name="label_latitude">Latitude</string>
+    <string name="label_longitude">Longitude</string>
+    <string name="title_set_alarm">Set New Alarm</string>
+    <string name="label_alarm_label">Alarm Label (Optional)</string>
+    <string name="label_vibrate">Vibrate</string>
+    <string name="action_save_alarm">Save Alarm</string>
+    <string name="title_locations">Classroom Locations</string>
+    <string name="msg_no_locations">No locations configured. Tap + to add a classroom.</string>
+    <string name="label_classroom_rule">Classroom (Rule %1$d)</string>
+    <string name="label_radius">Radius: %1$dm</string>
+    <string name="title_select_radius">Select Radius</string>
+    <string name="action_set_location">Set Classroom Location</string>
+    <string name="msg_tap_map">Tap map to select location</string>
 </resources>
+
 
 

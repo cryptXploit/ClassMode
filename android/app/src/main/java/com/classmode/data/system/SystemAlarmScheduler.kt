@@ -25,26 +25,28 @@ class SystemAlarmScheduler(
         }
     }
 
-    fun scheduleClass(schedule: ScheduleEntity) {
+    fun scheduleClass(schedule: ScheduleEntity): Boolean {
         val nextStart = ScheduleCalculator.getNextTriggerTime(schedule, isStart = true)
         val nextEnd = ScheduleCalculator.getNextTriggerTime(schedule, isStart = false)
 
+        var success = true
         if (nextStart != -1L) {
-            setExactAlarm(nextStart, schedule.id, isStart = true)
+            if (!setExactAlarm(nextStart, schedule.id, isStart = true)) success = false
         }
         if (nextEnd != -1L) {
-            setExactAlarm(nextEnd, schedule.id, isStart = false)
+            if (!setExactAlarm(nextEnd, schedule.id, isStart = false)) success = false
         }
+        return success
     }
 
-    private fun setExactAlarm(timeInMillis: Long, scheduleId: Long, isStart: Boolean) {
+    private fun setExactAlarm(timeInMillis: Long, scheduleId: Long, isStart: Boolean): Boolean {
         if (timeInMillis - System.currentTimeMillis() > 15 * 60 * 1000 && isStart) {
             setReminderAlarm(timeInMillis - 15 * 60 * 1000, scheduleId)
         }
         if (!canScheduleExactAlarms()) {
             healthMonitor.logFailure("Cannot schedule exact alarm for schedule `$scheduleId. Permission denied.")
             SystemNotificationManager(context).showProblemNotification("Permission Required", "ClassMode needs permission to schedule exact alarms.")
-            return
+            return false
         }
 
         val action = if (isStart) AlarmReceiver.ACTION_CLASS_START else AlarmReceiver.ACTION_CLASS_END
@@ -69,8 +71,10 @@ class SystemAlarmScheduler(
                 pendingIntent
             )
             healthMonitor.logSuccess("Scheduled `$action for schedule `$scheduleId at `$timeInMillis")
+            return true
         } catch (e: SecurityException) {
-            healthMonitor.logFailure("SecurityException while scheduling exact alarm for `$scheduleId.")
+            healthMonitor.logFailure("Exact Alarm permission denied")
+            return false
         }
     }
 
@@ -136,10 +140,10 @@ class SystemAlarmScheduler(
         }
     }
 
-    fun scheduleUserAlarm(alarm: com.classmode.domain.model.AlarmDomainModel, triggerTimeInMillis: Long) {
+    fun scheduleUserAlarm(alarm: com.classmode.domain.model.AlarmDomainModel, triggerTimeInMillis: Long): Boolean {
         if (!canScheduleExactAlarms()) {
             SystemNotificationManager(context).showProblemNotification("Permission Required", "ClassMode needs permission to schedule exact alarms.")
-            return
+            return false
         }
 
         val requestCode = (alarm.id * 100 + 5).toInt()
@@ -167,8 +171,10 @@ class SystemAlarmScheduler(
         try {
             val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTimeInMillis, showPendingIntent)
             alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+            return true
         } catch (e: SecurityException) {
-            healthMonitor.logFailure("SecurityException while scheduling alarm clock.")
+            healthMonitor.logFailure("Exact Alarm permission denied")
+            return false
         }
     }
 
@@ -186,6 +192,53 @@ class SystemAlarmScheduler(
         if (pendingIntent != null) {
             alarmManager.cancel(pendingIntent)
             pendingIntent.cancel()
+        }
+    }
+    fun scheduleOverrideClear(timeInMillis: Long): Boolean {
+        if (!canScheduleExactAlarms()) {
+            healthMonitor.logFailure("Cannot schedule override clear. Permission denied.")
+            SystemNotificationManager(context).showProblemNotification("Permission Required", "ClassMode needs permission to schedule exact alarms.")
+            return false
+        }
+
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            this.action = AlarmReceiver.ACTION_CLEAR_OVERRIDE
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            9999, // Distinct request code for clear override
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        try {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                timeInMillis,
+                pendingIntent
+            )
+            healthMonitor.logSuccess("Scheduled override clear at $timeInMillis")
+            return true
+        } catch (e: SecurityException) {
+            healthMonitor.logFailure("Exact Alarm permission denied")
+            return false
+        }
+    }
+
+    fun cancelOverrideClear() {
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            this.action = AlarmReceiver.ACTION_CLEAR_OVERRIDE
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            9999,
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pendingIntent != null) {
+            alarmManager.cancel(pendingIntent)
+            pendingIntent.cancel()
+            healthMonitor.logSuccess("Cancelled override clear")
         }
     }
 }
