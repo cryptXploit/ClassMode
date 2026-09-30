@@ -1,0 +1,44 @@
+﻿# ClassMode Living Project Context
+
+**Date of Update:** 2026-10-01
+**Git Branch:** main
+**Latest Commit Hash:** f75c046a5af686368293a3fdafb5231896903c82
+
+## Project Purpose
+ClassMode is an Android application designed to automate physical device sound profiles (Normal, Vibrate, Silent, DND) based on a combination of exact time schedules, geofenced campus locations, and priority-based overrides (e.g., Exams > Classes > Sleep). 
+
+## Current Architecture Summary
+The application leverages a Unidirectional Data Flow (UDF) via Jetpack Compose and ViewModels. The core automation backend strictly relies on Clean Architecture, decoupling the UI from OS-level intents. Memory-leak-prone coroutines have been successfully replaced by deterministic OS AlarmManager exact timers and GeofencingClient triggers. States are persisted across Reboots and Process Death using Room Database (entities) and Jetpack DataStore (preferences).
+
+## Navigation State
+Currently, the UI routing is managed centrally in MainScreen.kt using Jetpack Navigation Compose (NavHost). 
+The NavigationBar directly exposes 6 distinct tabs:
+1. Dashboard (route: "dashboard")
+2. Schedules (route: "schedules")
+3. Focus (route: "focus")
+4. Alarms (route: "alarms")
+5. Location (route: "location")
+6. Settings (route: "settings")
+
+*Note: This 6-tab flat structure is scheduled to be refactored into a strict 5-tab design where secondary features (Focus, Alarms) are nested inside an "Others" tab.*
+
+## Theme/UI State
+The application uses a rudimentary MaterialTheme implementation located in Theme.kt. 
+- **Colors:** Basic hardcoded values (Blue80, DarkBackground, etc.) with dynamic color support (Android 12+) injected via dynamicDarkColorScheme. There is no dedicated Color.kt token file.
+- **Typography:** Relies entirely on MaterialTheme defaults. Type.kt is currently missing.
+- **Components:** Basic standard Material 3 composables without a unified custom design system.
+
+## Haptic Architecture
+SystemHapticController provides two core OS-level feedback mechanisms:
+1. performClickEffect(): A subtle tap for UI interactions (currently wired individually into ViewModels like DashboardViewModel).
+2. performAutomationTransitionEffect(): A distinct waveform vibration for background automation transitions.
+There is currently no global CompositionLocal provider to streamline haptics directly within Compose modifier chains.
+
+## Completed Repairs
+**Phases 1-15 (Core Automation Audit) are completely finalized.** The application reliably survives Process Death, handles SecurityExceptions, correctly prioritizes overrides, clears zombie alarms, scrubs PII from logs, and passes stringent physical QA scenarios regarding background execution logic.
+
+## Outstanding UI/UX Issues
+- Restructure the Navigation graph into a strict 5-tab layout (Home, Schedule, Locations, Others, Settings).
+- Implement destructive action confirmations (e.g., Delete Schedule dialogs).
+- Unify the UI Design System (Colors, Typography, standardized Cards).
+- Complete Bengali string localization for remaining nested UI elements.
