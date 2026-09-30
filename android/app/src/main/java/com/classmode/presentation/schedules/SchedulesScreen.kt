@@ -29,6 +29,9 @@ import com.classmode.data.local.entity.ScheduleEntity
 import com.classmode.domain.model.AutomationRuleCondition
 import com.classmode.domain.model.SessionType
 import com.classmode.domain.model.SoundProfile
+import com.classmode.presentation.components.DestructiveConfirmationDialog
+import com.classmode.presentation.components.EmptyStateView
+import com.classmode.presentation.theme.LocalHaptic
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +39,8 @@ fun SchedulesScreen(viewModel: ScheduleViewModel) {
     val schedules by viewModel.schedules.collectAsStateWithLifecycle(initialValue = emptyList<ScheduleEntity>())
     var showEditorDialog by remember { mutableStateOf(false) }
     var scheduleToEdit by remember { mutableStateOf<ScheduleEntity?>(null) }
+    var scheduleToDelete by remember { mutableStateOf<ScheduleEntity?>(null) }
+    val haptic = LocalHaptic.current
 
     Scaffold(
         topBar = {
@@ -61,18 +66,12 @@ fun SchedulesScreen(viewModel: ScheduleViewModel) {
         }
     ) { paddingValues ->
         if (schedules.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No schedules yet. Tap + to add one.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            EmptyStateView(
+                title = androidx.compose.ui.res.stringResource(com.classmode.R.string.title_schedules),
+                subtitle = androidx.compose.ui.res.stringResource(com.classmode.R.string.msg_no_upcoming),
+                icon = Icons.Default.DateRange,
+                modifier = Modifier.padding(paddingValues)
+            )
         } else {
             LazyColumn(
                 modifier = Modifier
@@ -90,12 +89,23 @@ fun SchedulesScreen(viewModel: ScheduleViewModel) {
                             scheduleToEdit = schedule
                             showEditorDialog = true
                         },
-                        onDelete = { viewModel.deleteSchedule(schedule) }
+                        onDelete = { scheduleToDelete = schedule }
                     )
                 }
             }
         }
     }
+    
+    DestructiveConfirmationDialog(
+        showDialog = scheduleToDelete != null,
+        title = androidx.compose.ui.res.stringResource(com.classmode.R.string.title_delete_schedule),
+        text = androidx.compose.ui.res.stringResource(com.classmode.R.string.msg_delete_schedule, scheduleToDelete?.title?.takeIf { it.isNotBlank() } ?: scheduleToDelete?.type?.name ?: ""),
+        onConfirm = {
+            scheduleToDelete?.let { viewModel.deleteSchedule(it) }
+            scheduleToDelete = null
+        },
+        onDismiss = { scheduleToDelete = null }
+    )
     
     if (showEditorDialog) {
         ScheduleEditorDialog(
@@ -116,29 +126,14 @@ fun ScheduleItemCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-
-    if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.title_delete_schedule)) },
-            text = { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.msg_delete_schedule, if(schedule.title.isNotBlank()) schedule.title else schedule.type.name)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    onDelete()
-                    showDeleteConfirm = false
-                }) { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_delete), color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_cancel)) }
-            }
-        )
-    }
-
+    val haptic = LocalHaptic.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onEdit),
+            .clickable {
+                haptic.performClickEffect()
+                onEdit()
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (schedule.isEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
@@ -232,7 +227,7 @@ fun ScheduleItemCard(
                             tint = if (schedule.isEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    IconButton(onClick = { showDeleteConfirm = true }) {
+                    IconButton(onClick = onDelete) {
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = androidx.compose.ui.res.stringResource(com.classmode.R.string.action_delete),
@@ -506,6 +501,7 @@ fun TimePickerDialog(
         text = { content() }
     )
 }
+
 
 
 

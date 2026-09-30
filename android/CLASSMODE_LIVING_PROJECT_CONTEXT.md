@@ -38,9 +38,11 @@ The haptic controller is now exposed to the Compose UI layer globally via LocalH
 **Phases 1-15 (Core Automation Audit) are completely finalized.** The application reliably survives Process Death, handles SecurityExceptions, correctly prioritizes overrides, clears zombie alarms, scrubs PII from logs, and passes stringent physical QA scenarios regarding background execution logic.
 
 ## Outstanding UI/UX Issues
-- Implement destructive action confirmations (e.g., Delete Schedule dialogs).
+- SchedulesScreen delete safety and empty state modernization is complete. Delete operations in other screens (like Locations or Alarms) are instantaneous with no DestructiveConfirmationDialog.
 - Unify the UI Design System (Colors, Typography, standardized Cards).
 - Complete Bengali string localization for remaining nested UI elements.
+
+
 
 
 
