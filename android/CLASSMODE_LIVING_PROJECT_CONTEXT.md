@@ -12,15 +12,14 @@ The application leverages a Unidirectional Data Flow (UDF) via Jetpack Compose a
 
 ## Navigation State
 Currently, the UI routing is managed centrally in MainScreen.kt using Jetpack Navigation Compose (NavHost). 
-The NavigationBar directly exposes 6 distinct tabs:
+The NavigationBar implements a strict 5-tab structure:
 1. Dashboard (route: "dashboard")
 2. Schedules (route: "schedules")
-3. Focus (route: "focus")
-4. Alarms (route: "alarms")
-5. Location (route: "location")
-6. Settings (route: "settings")
+3. Location (route: "location")
+4. Others (route: "others")
+5. Settings (route: "settings")
 
-*Note: This 6-tab flat structure is scheduled to be refactored into a strict 5-tab design where secondary features (Focus, Alarms) are nested inside an "Others" tab.*
+*Note: Secondary features (Focus and Alarms) are fully nested inside the Others tab via OthersScreen.kt. The bottom bar elegantly handles deep-link selections by keeping the Others tab highlighted when actively inside these nested routes.*
 
 ## Theme/UI State
 The application uses a complete MaterialTheme design system.
@@ -38,8 +37,9 @@ The haptic controller is now exposed to the Compose UI layer globally via LocalH
 **Phases 1-15 (Core Automation Audit) are completely finalized.** The application reliably survives Process Death, handles SecurityExceptions, correctly prioritizes overrides, clears zombie alarms, scrubs PII from logs, and passes stringent physical QA scenarios regarding background execution logic.
 
 ## Outstanding UI/UX Issues
-- Restructure the Navigation graph into a strict 5-tab layout (Home, Schedule, Locations, Others, Settings).
 - Implement destructive action confirmations (e.g., Delete Schedule dialogs).
 - Unify the UI Design System (Colors, Typography, standardized Cards).
 - Complete Bengali string localization for remaining nested UI elements.
+
+
 

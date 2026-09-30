@@ -12,6 +12,8 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Menu
+import com.classmode.presentation.others.OthersScreen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -38,6 +40,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
     object Alarms : Screen("alarms", "Alarms", Icons.Default.Notifications)
     object Focus : Screen("focus", "Focus", Icons.Default.Lock)
+    object Others : Screen("others", "Others", Icons.Default.Menu)
 }
 
 @Composable
@@ -50,7 +53,7 @@ fun MainScreen(
     focusViewModel: com.classmode.presentation.focus.FocusViewModel
 ) {
     val navController = rememberNavController()
-    val screens = listOf(Screen.Dashboard, Screen.Schedules, Screen.Focus, Screen.Alarms, Screen.Location, Screen.Settings)
+    val screens = listOf(Screen.Dashboard, Screen.Schedules, Screen.Location, Screen.Others, Screen.Settings)
 
     Scaffold(
         bottomBar = {
@@ -62,7 +65,8 @@ fun MainScreen(
                 val currentDestination = navBackStackEntry?.destination
 
                 screens.forEach { screen ->
-                    val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                    val currentRoute = currentDestination?.route
+                    val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true || (screen == Screen.Others && (currentRoute == Screen.Focus.route || currentRoute == Screen.Alarms.route))
                     NavigationBarItem(
                         icon = {
                             Icon(
@@ -99,6 +103,7 @@ fun MainScreen(
                 composable(Screen.Dashboard.route) { DashboardScreen(viewModel = dashboardViewModel) }
                 composable(Screen.Schedules.route) { SchedulesScreen(viewModel = scheduleViewModel) }
                 composable(Screen.Settings.route) { SettingsScreen(viewModel = settingsViewModel) }
+                composable(Screen.Others.route) { OthersScreen(navController = navController) }
                 composable(Screen.Focus.route) { com.classmode.presentation.focus.FocusScreen(viewModel = focusViewModel) }
                 composable(Screen.Alarms.route) { AlarmsScreen(viewModel = alarmViewModel) }
                 composable(Screen.Location.route) { 
@@ -109,5 +114,6 @@ fun MainScreen(
         }
     }
 }
+
 
 

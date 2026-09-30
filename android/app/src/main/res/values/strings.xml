@@ -58,7 +58,11 @@
     <string name="title_select_radius">Select Radius</string>
     <string name="action_set_location">Set Classroom Location</string>
     <string name="msg_tap_map">Tap map to select location</string>
+    <string name="nav_others">Others</string>
+    <string name="title_focus_mode">Focus Mode</string>
+    <string name="title_custom_alarms">Custom Alarms</string>
 </resources>
+
 
 
 

@@ -58,7 +58,11 @@
     <string name="title_select_radius">ব্যাসার্ধ নির্বাচন করুন</string>
     <string name="action_set_location">ক্লাসরুমের অবস্থান সেট করুন</string>
     <string name="msg_tap_map">অবস্থান নির্বাচন করতে মানচিত্রে চাপুন</string>
+    <string name="nav_others">অন্যান্য</string>
+    <string name="title_focus_mode">ফোকাস মোড</string>
+    <string name="title_custom_alarms">কাস্টম অ্যালার্ম</string>
 </resources>
+
 
 
 
