@@ -18,6 +18,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
+import com.classmode.presentation.theme.LocalHaptic
 import com.classmode.presentation.dashboard.DashboardViewModel
 import com.classmode.presentation.schedules.ScheduleViewModel
 import com.classmode.presentation.settings.SettingsViewModel
@@ -108,8 +110,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            ClassModeTheme(darkTheme = darkTheme) {
-                Surface(
+            val app = application as ClassModeApplication
+            CompositionLocalProvider(LocalHaptic provides app.systemHapticController) {
+                ClassModeTheme(darkTheme = darkTheme) {
+                    Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
@@ -128,10 +132,12 @@ class MainActivity : ComponentActivity() {
                         focusViewModel = focusViewModel
                     )
                 }
+                }
             }
         }
     }
 }
+
 
 
 

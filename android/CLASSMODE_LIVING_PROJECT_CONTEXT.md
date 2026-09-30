@@ -23,16 +23,16 @@ The NavigationBar directly exposes 6 distinct tabs:
 *Note: This 6-tab flat structure is scheduled to be refactored into a strict 5-tab design where secondary features (Focus, Alarms) are nested inside an "Others" tab.*
 
 ## Theme/UI State
-The application uses a rudimentary MaterialTheme implementation located in Theme.kt. 
-- **Colors:** Basic hardcoded values (Blue80, DarkBackground, etc.) with dynamic color support (Android 12+) injected via dynamicDarkColorScheme. There is no dedicated Color.kt token file.
-- **Typography:** Relies entirely on MaterialTheme defaults. Type.kt is currently missing.
-- **Components:** Basic standard Material 3 composables without a unified custom design system.
+The application uses a complete MaterialTheme design system.
+- **Colors:** Color.kt has been established with a professional, premium Light/Dark color palette (deep primary blues/purples and clean surface colors). Theme.kt supports these proper Light/Dark palettes and dynamic color injection.
+- **Typography:** Type.kt has been established with a standard Material 3 Typography scale (display, title, body, label).
+- **Components:** Basic standard Material 3 composables using the unified custom design system.
 
 ## Haptic Architecture
 SystemHapticController provides two core OS-level feedback mechanisms:
-1. performClickEffect(): A subtle tap for UI interactions (currently wired individually into ViewModels like DashboardViewModel).
+1. performClickEffect(): A subtle tap for UI interactions.
 2. performAutomationTransitionEffect(): A distinct waveform vibration for background automation transitions.
-There is currently no global CompositionLocal provider to streamline haptics directly within Compose modifier chains.
+The haptic controller is now exposed to the Compose UI layer globally via LocalHaptic (CompositionLocalProvider in MainActivity.kt), allowing native access directly from UI components without passing it through every ViewModel.
 
 ## Completed Repairs
 **Phases 1-15 (Core Automation Audit) are completely finalized.** The application reliably survives Process Death, handles SecurityExceptions, correctly prioritizes overrides, clears zombie alarms, scrubs PII from logs, and passes stringent physical QA scenarios regarding background execution logic.
@@ -42,3 +42,4 @@ There is currently no global CompositionLocal provider to streamline haptics dir
 - Implement destructive action confirmations (e.g., Delete Schedule dialogs).
 - Unify the UI Design System (Colors, Typography, standardized Cards).
 - Complete Bengali string localization for remaining nested UI elements.
+

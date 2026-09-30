@@ -1,4 +1,4 @@
-package com.classmode.presentation.theme
+﻿package com.classmode.presentation.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -8,32 +8,58 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-// Define colors directly in Theme.kt to avoid missing references
-private val Blue80 = Color(0xFFD0BCFF)
-private val Teal80 = Color(0xFFCCC2DC)
-private val DarkBackground = Color(0xFF1C1B1F)
-private val DarkSurface = Color(0xFF1C1B1F)
-
-private val Blue40 = Color(0xFF6650a4)
-private val Teal40 = Color(0xFF625b71)
-private val LightBackground = Color(0xFFFFFBFE)
-private val LightSurface = Color(0xFFFFFBFE)
-
 private val DarkColorScheme = darkColorScheme(
-    primary = Blue80,
-    secondary = Teal80,
-    background = DarkBackground,
-    surface = DarkSurface
+    primary = PrimaryDark,
+    onPrimary = OnPrimaryDark,
+    primaryContainer = PrimaryContainerDark,
+    onPrimaryContainer = OnPrimaryContainerDark,
+    secondary = SecondaryDark,
+    onSecondary = OnSecondaryDark,
+    secondaryContainer = SecondaryContainerDark,
+    onSecondaryContainer = OnSecondaryContainerDark,
+    tertiary = TertiaryDark,
+    onTertiary = OnTertiaryDark,
+    tertiaryContainer = TertiaryContainerDark,
+    onTertiaryContainer = OnTertiaryContainerDark,
+    error = ErrorDark,
+    onError = OnErrorDark,
+    errorContainer = ErrorContainerDark,
+    onErrorContainer = OnErrorContainerDark,
+    background = BackgroundDark,
+    onBackground = OnBackgroundDark,
+    surface = SurfaceDark,
+    onSurface = OnSurfaceDark,
+    surfaceVariant = SurfaceVariantDark,
+    onSurfaceVariant = OnSurfaceVariantDark,
+    outline = OutlineDark
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Blue40,
-    secondary = Teal40,
-    background = LightBackground,
-    surface = LightSurface
+    primary = PrimaryLight,
+    onPrimary = OnPrimaryLight,
+    primaryContainer = PrimaryContainerLight,
+    onPrimaryContainer = OnPrimaryContainerLight,
+    secondary = SecondaryLight,
+    onSecondary = OnSecondaryLight,
+    secondaryContainer = SecondaryContainerLight,
+    onSecondaryContainer = OnSecondaryContainerLight,
+    tertiary = TertiaryLight,
+    onTertiary = OnTertiaryLight,
+    tertiaryContainer = TertiaryContainerLight,
+    onTertiaryContainer = OnTertiaryContainerLight,
+    error = ErrorLight,
+    onError = OnErrorLight,
+    errorContainer = ErrorContainerLight,
+    onErrorContainer = OnErrorContainerLight,
+    background = BackgroundLight,
+    onBackground = OnBackgroundLight,
+    surface = SurfaceLight,
+    onSurface = OnSurfaceLight,
+    surfaceVariant = SurfaceVariantLight,
+    onSurfaceVariant = OnSurfaceVariantLight,
+    outline = OutlineLight
 )
 
 @Composable
@@ -53,7 +79,7 @@ fun ClassModeTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        // Removed Typography parameter to use MaterialTheme's default typography and avoid kotlin.text.Typography conflicts
+        typography = Typography,
         content = content
     )
 }

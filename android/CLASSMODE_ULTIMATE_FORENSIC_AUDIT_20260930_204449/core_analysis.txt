@@ -1,0 +1,979 @@
+================================
+FILE: app\src\main\java\com\classmode\domain\automation\AutomationOrchestrator.kt
+================================
+package com.classmode.domain.automation
+
+import com.classmode.data.local.dao.AutomationEventDao
+import com.classmode.data.local.entity.AutomationEventEntity
+import com.classmode.data.system.SystemAudioController
+import com.classmode.data.system.SystemNotificationManager
+import com.classmode.data.system.SystemHapticController
+import com.classmode.domain.model.CapabilityResult
+import com.classmode.domain.model.SoundProfile
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import android.content.Context
+import com.classmode.R
+
+class AutomationOrchestrator(
+    private val context: Context,
+    private val contextEngine: ContextEngine,
+    private val ruleResolver: IRuleResolver,
+    private val audioController: SystemAudioController,
+    private val eventDao: AutomationEventDao,
+    private val restoreStateManager: RestoreStateManager,
+    private val notificationManager: SystemNotificationManager,
+    private val hapticController: SystemHapticController
+) {
+    private var lastActiveSessionId: String? = null
+    private var isManualOverrideActive: Boolean = false
+
+    fun start(scope: CoroutineScope) {
+        contextEngine.observeContext()
+            .onEach { snapshot ->
+                val targetProfile = ruleResolver.resolve(snapshot)
+                val activeSession = snapshot.activeSessions.firstOrNull()
+                val currentSessionId = activeSession?.id
+                val hasUserOverride = snapshot.userOverride != null
+                
+                if (hasUserOverride) {
+                    val currentPhysicalProfile = audioController.getCurrentProfile()
+                    if (currentPhysicalProfile != targetProfile) {
+                        audioController.applyProfile(targetProfile)
+                        hapticController.performAutomationTransitionEffect()
+                    }
+                    isManualOverrideActive = true
+                    return@onEach
+                }
+                
+                if (isManualOverrideActive && !hasUserOverride) {
+                    isManualOverrideActive = false
+                }
+
+                if (currentSessionId != null && targetProfile != SoundProfile.NORMAL) {
+                    if (currentSessionId != lastActiveSessionId) {
+                        // New session started or transitioned
+                        restoreStateManager.captureAndApply(currentSessionId, targetProfile)
+                        logEvent(activeSession.id.toLongOrNull() ?: 0L, targetProfile, CapabilityResult.APPLIED)
+                        lastActiveSessionId = currentSessionId
+                        
+                        // Show notification
+                        val title = context.getString(R.string.status_automation_active)
+                        val message = "Profile set to $targetProfile"
+                        notificationManager.showAutomationStatus(title, message)
+                        hapticController.performAutomationTransitionEffect()
+                    } else {
+                        // Ongoing session
+                        val currentPhysicalProfile = audioController.getCurrentProfile()
+                        if (currentPhysicalProfile != targetProfile && currentPhysicalProfile == SoundProfile.NORMAL) {
+                            // User manually changed physical volume button - respect it
+                        }
+                    }
+                } else {
+                    // No active session or resolved to Normal
+                    if (lastActiveSessionId != null) {
+                        // Session ended
+                        restoreStateManager.evaluateAndRestore(lastActiveSessionId!!)
+                        logEvent(0L, SoundProfile.NORMAL, CapabilityResult.RESTORED)
+                        lastActiveSessionId = null
+                        
+                        // Cancel automation notification
+                        notificationManager.cancelAutomationStatus()
+                        hapticController.performAutomationTransitionEffect()
+                    }
+                }
+            }
+            .launchIn(scope)
+    }
+
+    private suspend fun logEvent(ruleId: Long, profile: SoundProfile, result: CapabilityResult) = withContext(Dispatchers.IO) {
+        val event = AutomationEventEntity(
+            ruleId = ruleId,
+            timestamp = System.currentTimeMillis(),
+            result = result,
+            details = "Profile: $profile"
+        )
+        eventDao.insertEvent(event)
+    }
+}
+
+
+
+
+================================
+FILE: app\src\main\java\com\classmode\domain\automation\ContextEngine.kt
+================================
+package com.classmode.domain.automation
+
+import com.classmode.data.local.dao.ScheduleDao
+import com.classmode.data.local.dao.TriggerStateDao
+import com.classmode.data.preferences.PreferencesManager
+import com.classmode.data.system.SystemAudioController
+import com.classmode.data.system.GeofenceManager
+import com.classmode.domain.model.ActiveSession
+import com.classmode.domain.model.ContextSnapshot
+import com.classmode.domain.model.SessionType
+import com.classmode.domain.model.SoundProfile
+import com.classmode.domain.model.AutomationRuleCondition
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+
+class ContextEngine(
+    private val preferencesManager: PreferencesManager,
+    private val scheduleDao: ScheduleDao,
+    private val triggerStateDao: TriggerStateDao,
+    private val systemAudioController: SystemAudioController,
+    private val geofenceManager: GeofenceManager
+) {
+    fun observeContext(): Flow<ContextSnapshot> {
+        return combine(
+            preferencesManager.defaultProfileFlow,
+            preferencesManager.userOverrideFlow,
+            scheduleDao.getActiveSchedules(),
+            triggerStateDao.observeAllStates()
+        ) { defaultProfile, overrideProfile, enabledSchedules, triggerStates ->
+            
+            val stateMap = triggerStates.associateBy { it.ruleId }
+            val hasLocation = geofenceManager.hasLocationPermission()
+            
+            val activeSessions = enabledSchedules.mapNotNull { schedule ->
+                val state = stateMap[schedule.id] ?: return@mapNotNull null
+                val isLocationActive = if (hasLocation) state.isLocationActive else false
+                
+                val isEffectivelyActive = when (schedule.condition) {
+                    AutomationRuleCondition.TIME_ONLY -> state.isTimeActive
+                    AutomationRuleCondition.LOCATION_ONLY -> isLocationActive
+                    AutomationRuleCondition.TIME_AND_LOCATION -> state.isTimeActive && isLocationActive
+                    AutomationRuleCondition.TIME_OR_LOCATION -> state.isTimeActive || isLocationActive
+                }
+                
+                if (isEffectivelyActive) {
+                    ActiveSession(
+                        id = schedule.id.toString(),
+                        type = schedule.type,
+                        isUserInitiated = false,
+                        soundProfile = schedule.soundProfile
+                    )
+                } else {
+                    null
+                }
+            }
+            
+            // Check if any enabled schedule requires location
+            val requiresLocation = enabledSchedules.any {
+                it.condition == AutomationRuleCondition.LOCATION_ONLY || 
+                it.condition == AutomationRuleCondition.TIME_AND_LOCATION ||
+                it.condition == AutomationRuleCondition.TIME_OR_LOCATION
+            }
+            val isLocationUnavailable = requiresLocation && !hasLocation
+
+            ContextSnapshot(
+                activeSessions = activeSessions,
+                userOverride = overrideProfile,
+                defaultPreference = defaultProfile,
+                isSystemDndActive = systemAudioController.getCurrentProfile() == SoundProfile.DND,
+                isLocationUnavailable = isLocationUnavailable
+            )
+        }
+    }
+}
+
+
+================================
+FILE: app\src\main\java\com\classmode\domain\automation\RestoreStateManager.kt
+================================
+package com.classmode.domain.automation
+
+import com.classmode.data.preferences.RestoreStateRepository
+import com.classmode.data.system.SystemAudioController
+import com.classmode.domain.model.SoundProfile
+
+/**
+ * Handles safe transitions between sound profiles.
+ * Implements the requirement: "Never blindly switch the device to Normal after every session."
+ */
+class RestoreStateManager(
+    private val audioController: SystemAudioController,
+    private val stateRepository: RestoreStateRepository,
+    private val healthMonitor: AutomationHealthMonitor
+) {
+    /**
+     * Called when a new schedule or automation rule becomes active.
+     */
+    suspend fun captureAndApply(sessionId: String, targetProfile: SoundProfile) {
+        val currentPhysicalProfile = audioController.getCurrentProfile()
+        
+        // Prevent overwriting the original state if we are transitioning between overlapping automations
+        val existingTarget = stateRepository.activeTargetFlow.value
+        if (existingTarget == null) {
+            stateRepository.saveOriginalState(currentPhysicalProfile)
+        }
+
+        val success = audioController.applyProfile(targetProfile)
+        if (success) {
+            stateRepository.saveActiveTarget(sessionId, targetProfile)
+            healthMonitor.logSuccess("Applied $targetProfile for session $sessionId")
+        } else {
+            healthMonitor.logFailure("Failed to apply $targetProfile: Missing DND/System permissions")
+        }
+    }
+
+    /**
+     * Called when a schedule or automation rule ends.
+     */
+    suspend fun evaluateAndRestore(sessionId: String) {
+        val activeTarget = stateRepository.activeTargetFlow.value
+        
+        // If the ending session isn't the currently active automation, ignore it.
+        if (activeTarget == null || activeTarget.sessionId != sessionId) {
+            return
+        }
+
+        val currentPhysicalProfile = audioController.getCurrentProfile()
+        
+        // INTELLIGENCE CHECK: Did the user manually change their volume while the class/focus was active?
+        if (currentPhysicalProfile != activeTarget.profile) {
+            healthMonitor.logWarning("Manual override detected. Aborting restore to respect user choice.")
+            stateRepository.clearState()
+            return
+        }
+
+        // It is safe to restore
+        val originalState = stateRepository.originalStateFlow.value
+        if (originalState != null) {
+            val success = audioController.applyProfile(originalState.profile)
+            if (success) {
+                healthMonitor.logSuccess("Restored ${originalState.profile} after session $sessionId")
+            } else {
+                healthMonitor.logFailure("Failed to restore ${originalState.profile}")
+            }
+        }
+        
+        stateRepository.clearState()
+    }
+}
+
+
+================================
+FILE: app\src\main\java\com\classmode\domain\automation\RuleResolver.kt
+================================
+package com.classmode.domain.automation
+
+import com.classmode.domain.model.ContextSnapshot
+import com.classmode.domain.model.SessionType
+import com.classmode.domain.model.SoundProfile
+
+interface IRuleResolver {
+    fun resolve(context: ContextSnapshot): SoundProfile
+}
+
+/**
+ * Deterministic local intelligence engine.
+ * Resolves the correct sound profile based on a strict hierarchy:
+ * 1. User Override
+ * 2. Sleep / Protected Quiet Session
+ * 3. Exam
+ * 4. Class
+ * 5. Focus
+ * 6. Campus / Geofence
+ * 7. Default Preference
+ */
+class RuleResolver : IRuleResolver {
+
+    override fun resolve(context: ContextSnapshot): SoundProfile {
+        // 1. Explicit user overrides take absolute precedence
+        if (context.userOverride != null) {
+            return context.userOverride
+        }
+
+        val sessionTypes = context.activeSessions.map { it.type }.toSet()
+
+        // 2. Sleep / Protected Quiet Session
+        if (sessionTypes.contains(SessionType.SLEEP)) {
+            return SoundProfile.DND
+        }
+
+        // 3. Active Exam Schedule
+        if (sessionTypes.contains(SessionType.EXAM)) {
+            return SoundProfile.SILENT
+        }
+
+        // 4. Active Class Schedule
+        if (sessionTypes.contains(SessionType.CLASS)) {
+            return SoundProfile.VIBRATE
+        }
+
+        // 5. Personal Focus Profile
+        if (sessionTypes.contains(SessionType.FOCUS)) {
+            return SoundProfile.SILENT
+        }
+
+        // 6. Campus Profile (Geofence)
+        if (sessionTypes.contains(SessionType.CAMPUS)) {
+            return SoundProfile.VIBRATE
+        }
+
+        // 7. Fallback to user's default preference
+        return context.defaultPreference
+    }
+}
+
+
+================================
+FILE: app\src\main\java\com\classmode\domain\automation\ScheduleCalculator.kt
+================================
+package com.classmode.domain.automation
+
+import com.classmode.data.local.entity.ScheduleEntity
+import java.util.Calendar
+
+object ScheduleCalculator {
+
+    // daysOfWeek is expected to be a bitmask where bit 0 is Sunday, bit 1 is Monday, etc.
+    // e.g. 1 = Sunday, 2 = Monday, 4 = Tuesday, 64 = Saturday.
+    // But let's check standard Android Calendar: SUNDAY = 1, MONDAY = 2... SATURDAY = 7
+    // So if the bitmask is 1 << (Calendar.DAY_OF_WEEK - 1), 
+    // Sunday (1) -> 1 << 0 = 1
+    // Monday (2) -> 1 << 1 = 2
+    
+    fun getNextTriggerTime(schedule: ScheduleEntity, isStart: Boolean): Long {
+        val now = Calendar.getInstance()
+        var bestTime = Long.MAX_VALUE
+
+        val targetMinute = if (isStart) schedule.startTimeMins else schedule.endTimeMins
+        val targetHour = targetMinute / 60
+        val targetMin = targetMinute % 60
+
+        for (dayIdx in 1..7) {
+            val bit = 1 shl (dayIdx - 1)
+            if ((schedule.daysOfWeek and bit) != 0) {
+                val calendar = Calendar.getInstance()
+                calendar.set(Calendar.HOUR_OF_DAY, targetHour)
+                calendar.set(Calendar.MINUTE, targetMin)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+
+                val currentDay = calendar.get(Calendar.DAY_OF_WEEK)
+                var daysToAdd = dayIdx - currentDay
+                
+                if (daysToAdd < 0 || (daysToAdd == 0 && calendar.timeInMillis <= now.timeInMillis)) {
+                    daysToAdd += 7
+                }
+                
+                calendar.add(Calendar.DAY_OF_YEAR, daysToAdd)
+                
+                if (calendar.timeInMillis < bestTime) {
+                    bestTime = calendar.timeInMillis
+                }
+            }
+        }
+        
+        return if (bestTime == Long.MAX_VALUE) -1L else bestTime
+    }
+}
+
+
+================================
+FILE: app\src\main\java\com\classmode\data\system\SystemAlarmScheduler.kt
+================================
+package com.classmode.data.system
+
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import com.classmode.data.local.entity.ScheduleEntity
+import com.classmode.data.receiver.AlarmReceiver
+import com.classmode.domain.automation.AutomationHealthMonitor
+import com.classmode.domain.automation.ScheduleCalculator
+import com.classmode.data.system.SystemNotificationManager
+
+class SystemAlarmScheduler(
+    private val context: Context,
+    private val healthMonitor: AutomationHealthMonitor
+) {
+    private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+    fun canScheduleExactAlarms(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            alarmManager.canScheduleExactAlarms()
+        } else {
+            true
+        }
+    }
+
+    fun scheduleClass(schedule: ScheduleEntity) {
+        val nextStart = ScheduleCalculator.getNextTriggerTime(schedule, isStart = true)
+        val nextEnd = ScheduleCalculator.getNextTriggerTime(schedule, isStart = false)
+
+        if (nextStart != -1L) {
+            setExactAlarm(nextStart, schedule.id, isStart = true)
+        }
+        if (nextEnd != -1L) {
+            setExactAlarm(nextEnd, schedule.id, isStart = false)
+        }
+    }
+
+    private fun setExactAlarm(timeInMillis: Long, scheduleId: Long, isStart: Boolean) {
+        if (timeInMillis - System.currentTimeMillis() > 15 * 60 * 1000 && isStart) {
+            setReminderAlarm(timeInMillis - 15 * 60 * 1000, scheduleId)
+        }
+        if (!canScheduleExactAlarms()) {
+            healthMonitor.logFailure("Cannot schedule exact alarm for schedule `$scheduleId. Permission denied.")
+            SystemNotificationManager(context).showProblemNotification("Permission Required", "ClassMode needs permission to schedule exact alarms.")
+            return
+        }
+
+        val action = if (isStart) AlarmReceiver.ACTION_CLASS_START else AlarmReceiver.ACTION_CLASS_END
+        val requestCode = (scheduleId * 10 + (if (isStart) 1 else 0)).toInt()
+
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            this.action = action
+            putExtra(AlarmReceiver.EXTRA_SESSION_ID, scheduleId.toString())
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        try {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                timeInMillis,
+                pendingIntent
+            )
+            healthMonitor.logSuccess("Scheduled `$action for schedule `$scheduleId at `$timeInMillis")
+        } catch (e: SecurityException) {
+            healthMonitor.logFailure("SecurityException while scheduling exact alarm for `$scheduleId.")
+        }
+    }
+
+    private fun setReminderAlarm(timeInMillis: Long, scheduleId: Long) {
+        val requestCode = (scheduleId * 10 + 2).toInt()
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            this.action = AlarmReceiver.ACTION_CLASS_REMINDER
+            putExtra(AlarmReceiver.EXTRA_SESSION_ID, scheduleId.toString())
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        try {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent)
+        } catch (e: SecurityException) {
+            // Ignore
+        }
+    }
+
+    fun cancelSchedule(scheduleId: Long) {
+        cancelAlarm(scheduleId, isStart = true)
+        cancelAlarm(scheduleId, isStart = false)
+        cancelReminder(scheduleId)
+    }
+
+    private fun cancelAlarm(scheduleId: Long, isStart: Boolean) {
+        val action = if (isStart) AlarmReceiver.ACTION_CLASS_START else AlarmReceiver.ACTION_CLASS_END
+        val requestCode = (scheduleId * 10 + (if (isStart) 1 else 0)).toInt()
+
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            this.action = action
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pendingIntent != null) {
+            alarmManager.cancel(pendingIntent)
+            pendingIntent.cancel()
+            healthMonitor.logSuccess("Cancelled `$action for schedule `$scheduleId")
+        }
+    }
+
+    private fun cancelReminder(scheduleId: Long) {
+        val requestCode = (scheduleId * 10 + 2).toInt()
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            this.action = AlarmReceiver.ACTION_CLASS_REMINDER
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pendingIntent != null) {
+            alarmManager.cancel(pendingIntent)
+            pendingIntent.cancel()
+        }
+    }
+
+    fun scheduleUserAlarm(alarm: com.classmode.domain.model.AlarmDomainModel, triggerTimeInMillis: Long) {
+        if (!canScheduleExactAlarms()) {
+            SystemNotificationManager(context).showProblemNotification("Permission Required", "ClassMode needs permission to schedule exact alarms.")
+            return
+        }
+
+        val requestCode = (alarm.id * 100 + 5).toInt()
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            this.action = AlarmReceiver.ACTION_ALARM_RING
+            putExtra("extra_alarm_id", alarm.id.toString())
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val showIntent = Intent(context, Class.forName("com.classmode.presentation.alarms.AlarmRingingActivity")).apply {
+            putExtra("extra_alarm_id", alarm.id.toString())
+        }
+        val showPendingIntent = PendingIntent.getActivity(
+            context,
+            requestCode,
+            showIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        try {
+            val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTimeInMillis, showPendingIntent)
+            alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+        } catch (e: SecurityException) {
+            healthMonitor.logFailure("SecurityException while scheduling alarm clock.")
+        }
+    }
+
+    fun cancelUserAlarm(alarmId: Long) {
+        val requestCode = (alarmId * 100 + 5).toInt()
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            this.action = AlarmReceiver.ACTION_ALARM_RING
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pendingIntent != null) {
+            alarmManager.cancel(pendingIntent)
+            pendingIntent.cancel()
+        }
+    }
+}
+
+
+================================
+FILE: app\src\main\java\com\classmode\data\system\GeofenceManager.kt
+================================
+package com.classmode.data.system
+
+import android.Manifest
+import android.annotation.SuppressLint
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.util.Log
+import androidx.core.content.ContextCompat
+import com.classmode.data.local.entity.GeofenceEntity
+import com.classmode.data.receiver.GeofenceReceiver
+import com.google.android.gms.location.Geofence
+import com.google.android.gms.location.GeofencingClient
+import com.google.android.gms.location.GeofencingRequest
+import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.tasks.await
+
+class GeofenceManager(private val context: Context) {
+    private val geofencingClient: GeofencingClient = LocationServices.getGeofencingClient(context)
+
+    private val geofencePendingIntent: PendingIntent by lazy {
+        val intent = Intent(context, GeofenceReceiver::class.java)
+        PendingIntent.getBroadcast(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+    }
+
+    @SuppressLint("MissingPermission")
+    suspend fun registerGeofence(geofenceEntity: GeofenceEntity): Boolean {
+        if (!hasLocationPermission()) return false
+
+        val geofence = Geofence.Builder()
+            .setRequestId(geofenceEntity.ruleId.toString())
+            .setCircularRegion(
+                geofenceEntity.latitude,
+                geofenceEntity.longitude,
+                geofenceEntity.radiusMeters
+            )
+            .setExpirationDuration(Geofence.NEVER_EXPIRE)
+            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
+            .build()
+
+        val geofencingRequest = GeofencingRequest.Builder()
+            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+            .addGeofence(geofence)
+            .build()
+
+        return try {
+            geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent).await()
+            Log.d("GeofenceManager", "Successfully registered geofence: ${geofenceEntity.ruleId}")
+            true
+        } catch (e: Exception) {
+            Log.e("GeofenceManager", "Failed to register geofence", e)
+            false
+        }
+    }
+
+    suspend fun removeGeofence(ruleId: Long): Boolean {
+        return try {
+            geofencingClient.removeGeofences(listOf(ruleId.toString())).await()
+            Log.d("GeofenceManager", "Successfully removed geofence: $ruleId")
+            true
+        } catch (e: Exception) {
+            Log.e("GeofenceManager", "Failed to remove geofence", e)
+            false
+        }
+    }
+    
+    suspend fun removeAllGeofences(): Boolean {
+        return try {
+            geofencingClient.removeGeofences(geofencePendingIntent).await()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun hasLocationPermission(): Boolean {
+        val fineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val backgroundLocation = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
+        } else true
+        return fineLocation && backgroundLocation
+    }
+}
+
+
+
+================================
+FILE: app\src\main\java\com\classmode\data\system\SystemAudioController.kt
+================================
+package com.classmode.data.system
+
+import android.app.NotificationManager
+import android.content.Context
+import android.media.AudioManager
+import android.os.Build
+import com.classmode.domain.model.SoundProfile
+
+/**
+ * Handles actual device sound profile changes safely.
+ * Never claims success unless the Android system accepts the change.
+ */
+class SystemAudioController(private val context: Context) {
+    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    /**
+     * Checks if the app has permission to change Do Not Disturb (DND) settings.
+     * Required for SILENT and DND modes on modern Android versions.
+     */
+    fun hasDndPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            notificationManager.isNotificationPolicyAccessGranted
+        } else {
+            true // Pre-Marshmallow does not strictly require this for ringer changes
+        }
+    }
+
+    /**
+     * Attempts to apply the sound profile. 
+     * Returns true if successful, false if restricted by permissions.
+     */
+    fun applyProfile(profile: SoundProfile): Boolean {
+        if ((profile == SoundProfile.DND || profile == SoundProfile.SILENT) && !hasDndPermission()) {
+            return false // Honest platform behavior: fail gracefully if permission is missing
+        }
+
+        try {
+            when (profile) {
+                SoundProfile.NORMAL -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                    }
+                    audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+                }
+                SoundProfile.VIBRATE -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                    }
+                    audioManager.ringerMode = AudioManager.RINGER_MODE_VIBRATE
+                }
+                SoundProfile.SILENT -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                    }
+                    audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
+                }
+                SoundProfile.DND -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
+                    } else {
+                        audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
+                    }
+                }
+            }
+            return true
+        } catch (e: SecurityException) {
+            // Failsafe for OEM-specific restrictions
+            return false
+        }
+    }
+
+    /**
+     * Reads the current physical device state.
+     */
+    fun getCurrentProfile(): SoundProfile {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val filter = notificationManager.currentInterruptionFilter
+            if (filter == NotificationManager.INTERRUPTION_FILTER_NONE || filter == NotificationManager.INTERRUPTION_FILTER_PRIORITY || filter == NotificationManager.INTERRUPTION_FILTER_ALARMS) {
+                return SoundProfile.DND
+            }
+        }
+        
+        return when (audioManager.ringerMode) {
+            AudioManager.RINGER_MODE_NORMAL -> SoundProfile.NORMAL
+            AudioManager.RINGER_MODE_VIBRATE -> SoundProfile.VIBRATE
+            AudioManager.RINGER_MODE_SILENT -> SoundProfile.SILENT
+            else -> SoundProfile.NORMAL
+        }
+    }
+}
+
+
+================================
+FILE: app\src\main\java\com\classmode\data\preferences\RestoreStateRepository.kt
+================================
+package com.classmode.data.preferences
+
+import android.content.Context
+import android.content.SharedPreferences
+import com.classmode.domain.model.ActiveAutomationTarget
+import com.classmode.domain.model.CapturedState
+import com.classmode.domain.model.SoundProfile
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+class RestoreStateRepository(context: Context) {
+    private val prefs: SharedPreferences = context.getSharedPreferences("restore_state_prefs", Context.MODE_PRIVATE)
+    
+    private val _originalState = MutableStateFlow<CapturedState?>(loadOriginalState())
+    private val _activeTarget = MutableStateFlow<ActiveAutomationTarget?>(loadActiveTarget())
+
+    val originalStateFlow: StateFlow<CapturedState?> = _originalState.asStateFlow()
+    val activeTargetFlow: StateFlow<ActiveAutomationTarget?> = _activeTarget.asStateFlow()
+
+    fun saveOriginalState(profile: SoundProfile, ringerMode: Int = 2, zenMode: Int = 0) {
+        val state = CapturedState(profile, System.currentTimeMillis(), ringerMode, zenMode)
+        _originalState.value = state
+        prefs.edit()
+            .putString("orig_profile", profile.name)
+            .putLong("orig_time", state.capturedAtMillis)
+            .putInt("orig_ringer", ringerMode)
+            .putInt("orig_zen", zenMode)
+            .apply()
+    }
+
+    fun saveActiveTarget(sessionId: String, profile: SoundProfile) {
+        val target = ActiveAutomationTarget(sessionId, profile, System.currentTimeMillis())
+        _activeTarget.value = target
+        prefs.edit()
+            .putString("target_session", sessionId)
+            .putString("target_profile", profile.name)
+            .putLong("target_time", target.appliedAtMillis)
+            .apply()
+    }
+
+    fun clearState() {
+        _originalState.value = null
+        _activeTarget.value = null
+        prefs.edit().clear().apply()
+    }
+    
+    private fun loadOriginalState(): CapturedState? {
+        val profileStr = prefs.getString("orig_profile", null) ?: return null
+        val time = prefs.getLong("orig_time", 0L)
+        val ringer = prefs.getInt("orig_ringer", 2)
+        val zen = prefs.getInt("orig_zen", 0)
+        return try {
+            CapturedState(SoundProfile.valueOf(profileStr), time, ringer, zen)
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
+    private fun loadActiveTarget(): ActiveAutomationTarget? {
+        val session = prefs.getString("target_session", null) ?: return null
+        val profileStr = prefs.getString("target_profile", null) ?: return null
+        val time = prefs.getLong("target_time", 0L)
+        return try {
+            ActiveAutomationTarget(session, SoundProfile.valueOf(profileStr), time)
+        } catch (e: Exception) {
+            null
+        }
+    }
+}
+
+
+
+================================
+FILE: app\src\main\java\com\classmode\data\local\entity\ScheduleEntity.kt
+================================
+package com.classmode.data.local.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import com.classmode.domain.model.SessionType
+import com.classmode.domain.model.SoundProfile
+import com.classmode.domain.model.AutomationRuleCondition
+
+@Entity(tableName = "schedules")
+data class ScheduleEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val type: SessionType,
+    val title: String = "",
+    val startTimeMins: Int,
+    val endTimeMins: Int,
+    val daysOfWeek: Int,
+    val soundProfile: SoundProfile = SoundProfile.VIBRATE,
+    val condition: AutomationRuleCondition = AutomationRuleCondition.TIME_ONLY,
+    val isEnabled: Boolean = true
+)
+
+@Entity(tableName = "geofences")
+data class GeofenceEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val ruleId: Long,
+    val latitude: Double,
+    val longitude: Double,
+    val radiusMeters: Float
+)
+
+
+================================
+FILE: app\src\main\java\com\classmode\data\local\entity\TriggerStateEntity.kt
+================================
+package com.classmode.data.local.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "trigger_states")
+data class TriggerStateEntity(
+    @PrimaryKey
+    val ruleId: Long,
+    val isTimeActive: Boolean = false,
+    val isLocationActive: Boolean = false,
+    val lastUpdated: Long = 0L
+)
+
+
+================================
+FILE: app\src\main\java\com\classmode\presentation\location\LocationViewModel.kt
+================================
+package com.classmode.presentation.location
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.classmode.data.local.dao.GeofenceDao
+import com.classmode.data.local.dao.ScheduleDao
+import com.classmode.data.local.entity.GeofenceEntity
+import com.classmode.data.local.entity.ScheduleEntity
+import com.classmode.data.preferences.PreferencesManager
+import com.classmode.data.system.GeofenceManager
+import com.classmode.domain.model.AutomationRuleCondition
+import com.classmode.domain.model.SessionType
+import com.classmode.domain.model.SoundProfile
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+class LocationViewModel(
+    private val geofenceDao: GeofenceDao,
+    private val geofenceManager: GeofenceManager,
+    private val scheduleDao: ScheduleDao,
+    private val preferencesManager: PreferencesManager
+) : ViewModel() {
+
+    val geofences = geofenceDao.getAllGeofences().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    fun addGeofence(latitude: Double, longitude: Double, radius: Float) {
+        viewModelScope.launch {
+            val ruleId = System.currentTimeMillis()
+            
+            // Get current default profile from settings
+            val defaultProfile = preferencesManager.defaultProfileFlow.first()
+            
+            // Create a corresponding ScheduleEntity so the automation engine recognizes it
+            val schedule = ScheduleEntity(
+                id = ruleId,
+                type = SessionType.CLASS,
+                title = "Location Auto-Rule",
+                startTimeMins = 0,
+                endTimeMins = 0,
+                daysOfWeek = 127, // Everyday (all 7 bits set)
+                soundProfile = defaultProfile,
+                condition = AutomationRuleCondition.LOCATION_ONLY,
+                isEnabled = true
+            )
+            scheduleDao.insertSchedule(schedule)
+
+            val entity = GeofenceEntity(
+                ruleId = ruleId,
+                latitude = latitude,
+                longitude = longitude,
+                radiusMeters = radius
+            )
+            
+            // Persist to Room
+            geofenceDao.insertGeofence(entity)
+            
+            // Register with GeofencingClient
+            geofenceManager.registerGeofence(entity)
+        }
+    }
+
+    fun deleteGeofence(geofence: GeofenceEntity) {
+        viewModelScope.launch {
+            geofenceDao.deleteGeofence(geofence)
+            val schedule = scheduleDao.getScheduleById(geofence.ruleId)
+            if (schedule != null) {
+                scheduleDao.deleteSchedule(schedule)
+            }
+            geofenceManager.removeGeofence(geofence.ruleId)
+        }
+    }
+}
+
+
