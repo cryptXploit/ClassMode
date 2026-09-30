@@ -40,7 +40,6 @@ fun SchedulesScreen(viewModel: ScheduleViewModel) {
     var showEditorDialog by remember { mutableStateOf(false) }
     var scheduleToEdit by remember { mutableStateOf<ScheduleEntity?>(null) }
     var scheduleToDelete by remember { mutableStateOf<ScheduleEntity?>(null) }
-    val haptic = LocalHaptic.current
 
     Scaffold(
         topBar = {
@@ -501,6 +500,8 @@ fun TimePickerDialog(
         text = { content() }
     )
 }
+
+
 
 
 

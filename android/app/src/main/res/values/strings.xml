@@ -63,7 +63,10 @@
     <string name="title_custom_alarms">Custom Alarms</string>
     <string name="action_delete_confirm">Delete</string>
     <string name="title_warning">Warning</string>
+    <string name="msg_delete_alarm">Are you sure you want to delete this alarm?</string>
+    <string name="msg_delete_location">Are you sure you want to delete this location?</string>
 </resources>
+
 
 
 

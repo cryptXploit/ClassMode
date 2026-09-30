@@ -63,7 +63,10 @@
     <string name="title_custom_alarms">কাস্টম অ্যালার্ম</string>
     <string name="action_delete_confirm">মুছুন</string>
     <string name="title_warning">সতর্কতা</string>
+    <string name="msg_delete_alarm">আপনি কি নিশ্চিত যে আপনি এই অ্যালার্মটি মুছতে চান?</string>
+    <string name="msg_delete_location">আপনি কি নিশ্চিত যে আপনি এই স্থানটি মুছতে চান?</string>
 </resources>
+
 
 
 

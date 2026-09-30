@@ -22,12 +22,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.classmode.presentation.components.DestructiveConfirmationDialog
+import com.classmode.presentation.components.EmptyStateView
+import com.classmode.presentation.theme.LocalHaptic
+import com.classmode.R
+
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
-import android.preference.PreferenceManager
-import com.classmode.data.local.entity.GeofenceEntity
 import com.google.android.gms.location.LocationServices
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
@@ -126,16 +127,23 @@ fun LocationScreen(
                 }
 
                 if (geofences.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.msg_no_locations))
-                    }
+                    EmptyStateView(
+                        title = stringResource(R.string.title_locations),
+                        subtitle = stringResource(R.string.msg_no_locations),
+                        icon = Icons.Default.Place,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 } else {
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(geofences) { geofence ->
-                            Card(modifier = Modifier.fillMaxWidth()) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { haptic.performClickEffect() }
+                            ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -145,7 +153,7 @@ fun LocationScreen(
                                         Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_classroom_rule, geofence.ruleId), style = MaterialTheme.typography.titleMedium)
                                         Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.label_radius, geofence.radiusMeters.toInt()), style = MaterialTheme.typography.bodyMedium)
                                     }
-                                    IconButton(onClick = { onDeleteGeofence(geofence) }) {
+                                    IconButton(onClick = { geofenceToDelete = geofence }) {
                                         Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
                                     }
                                 }
@@ -156,6 +164,17 @@ fun LocationScreen(
             }
         }
     }
+    
+    DestructiveConfirmationDialog(
+        showDialog = geofenceToDelete != null,
+        title = stringResource(R.string.title_warning),
+        text = stringResource(R.string.msg_delete_location),
+        onConfirm = {
+            geofenceToDelete?.let { onDeleteGeofence(it) }
+            geofenceToDelete = null
+        },
+        onDismiss = { geofenceToDelete = null }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -305,4 +324,5 @@ fun FullScreenMapSelector(
         }
     }
 }
+
 
