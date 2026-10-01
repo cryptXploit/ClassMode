@@ -28,17 +28,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.classmode.domain.model.AlarmDomainModel
 import com.classmode.presentation.components.EmptyState
+import com.classmode.presentation.components.DestructiveConfirmationDialog
+import com.classmode.presentation.theme.LocalHaptic
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmsScreen(viewModel: AlarmViewModel) {
+    val haptic = LocalHaptic.current
     val alarms by viewModel.alarms.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+    var alarmToDelete by remember { mutableStateOf<AlarmDomainModel?>(null) }
 
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = { 
+                    haptic.performClickEffect()
+                    showAddDialog = true 
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.padding(16.dp).size(64.dp)
@@ -63,8 +70,14 @@ fun AlarmsScreen(viewModel: AlarmViewModel) {
                 items(alarms, key = { it.id }) { alarm ->
                     AlarmItemCard(
                         alarm = alarm,
-                        onToggle = { viewModel.toggleAlarm(alarm, it) },
-                        onDelete = { viewModel.deleteAlarm(alarm) }
+                        onToggle = { 
+                            haptic.performClickEffect()
+                            viewModel.toggleAlarm(alarm, it) 
+                        },
+                        onDelete = { 
+                            haptic.performClickEffect()
+                            alarmToDelete = alarm 
+                        }
                     )
                 }
             }
@@ -79,6 +92,19 @@ fun AlarmsScreen(viewModel: AlarmViewModel) {
                 }
             )
         }
+        
+        DestructiveConfirmationDialog(
+            showDialog = alarmToDelete != null,
+            title = androidx.compose.ui.res.stringResource(com.classmode.R.string.title_warning),
+            text = androidx.compose.ui.res.stringResource(com.classmode.R.string.msg_delete_alarm),
+            onConfirm = {
+                alarmToDelete?.let { viewModel.deleteAlarm(it) }
+                alarmToDelete = null
+            },
+            onDismiss = {
+                alarmToDelete = null
+            }
+        )
     }
 }
 
@@ -196,6 +222,7 @@ fun AlarmItemCard(alarm: AlarmDomainModel, onToggle: (Boolean) -> Unit, onDelete
 
 @Composable
 fun AddAlarmDialog(onDismiss: () -> Unit, onAdd: (Int, Int, String, Boolean, Int) -> Unit) {
+    val haptic = LocalHaptic.current
     var label by remember { mutableStateOf("") }
     var hour by remember { mutableStateOf(8) }
     var minute by remember { mutableStateOf(0) }
@@ -241,7 +268,10 @@ fun AddAlarmDialog(onDismiss: () -> Unit, onAdd: (Int, Int, String, Boolean, Int
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .clickable { timePickerDialog.show() }
+                        .clickable { 
+                            haptic.performClickEffect()
+                            timePickerDialog.show() 
+                        }
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         .padding(24.dp),
                     contentAlignment = Alignment.Center
@@ -275,6 +305,7 @@ fun AddAlarmDialog(onDismiss: () -> Unit, onAdd: (Int, Int, String, Boolean, Int
                                     .clip(CircleShape)
                                     .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
                                     .clickable {
+                                        haptic.performClickEffect()
                                         selectedDays = if (isSelected) selectedDays and (1 shl i).inv() else selectedDays or (1 shl i)
                                     },
                                 contentAlignment = Alignment.Center
@@ -310,6 +341,8 @@ fun AddAlarmDialog(onDismiss: () -> Unit, onAdd: (Int, Int, String, Boolean, Int
         }
     )
 }
+
+
 
 
 
