@@ -1,9 +1,18 @@
+﻿import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.kapt")
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
+}
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -100,6 +109,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
 }
+
 
 
 
