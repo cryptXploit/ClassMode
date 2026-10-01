@@ -42,6 +42,7 @@ The haptic controller is now exposed to the Compose UI layer globally via LocalH
 - Alarm Delete Safety
 - Alarm Haptic Integration
 - Complete EN/BN Localization Coverage
+- Global Error/Exception Handling (Diagnostic parity)
 
 ## Outstanding UI/UX Issues
 - The app is nearly complete. Just some final physical QA checks remain.
@@ -49,6 +50,7 @@ The haptic controller is now exposed to the Compose UI layer globally via LocalH
 
 ## Current Phase Status
 - **UI/UX Modernization Phase:** 100% Complete. Ready for final physical QA.
+
 
 
 

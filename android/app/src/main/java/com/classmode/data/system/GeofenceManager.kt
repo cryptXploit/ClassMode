@@ -73,6 +73,7 @@ class GeofenceManager(private val context: Context) {
             geofencingClient.removeGeofences(geofencePendingIntent).await()
             true
         } catch (e: Exception) {
+            android.util.Log.e("GeofenceManager", "Failed to clear all geofences due to exception: $e", e)
             false
         }
     }
@@ -85,5 +86,6 @@ class GeofenceManager(private val context: Context) {
         return fineLocation && backgroundLocation
     }
 }
+
 
 

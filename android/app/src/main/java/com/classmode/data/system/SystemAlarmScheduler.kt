@@ -93,7 +93,7 @@ class SystemAlarmScheduler(
         try {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent)
         } catch (e: SecurityException) {
-            // Ignore
+            android.util.Log.e("SystemAlarmScheduler", "SecurityException: Exact alarm permission missing or revoked during cancellation", e)
         }
     }
 
@@ -242,3 +242,4 @@ class SystemAlarmScheduler(
         }
     }
 }
+
