@@ -3,6 +3,7 @@ package com.cryptxploit.classmode.data.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.PowerManager
 import android.util.Log
 import com.cryptxploit.classmode.ClassModeApplication
 import com.cryptxploit.classmode.data.system.SystemAlarmScheduler
@@ -24,128 +25,132 @@ class AlarmReceiver : BroadcastReceiver() {
         const val ACTION_CLEAR_OVERRIDE = "com.cryptxploit.classmode.ACTION_CLEAR_OVERRIDE"
     }
 
-        override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(context: Context, intent: Intent) {
         val app = context.applicationContext as ClassModeApplication
         val scheduleDao = app.database.scheduleDao()
         val triggerStateDao = app.database.triggerStateDao()
         val alarmScheduler = SystemAlarmScheduler(context, app.healthMonitor)
+
+        // Acquire a WakeLock to ensure the device doesn't sleep before orchestration completes
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ClassMode:AlarmReceiverWakeLock")
+        wakeLock.acquire(10000L) // 10 seconds to allow coroutines and orchestrator to finish
         
-        when (intent.action) {
-            ACTION_CLEAR_OVERRIDE -> {
-                Log.i("AlarmReceiver", "Triggered manual override clear")
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        app.preferencesManager.setUserOverride(null)
-                    } catch (e: Exception) {
-                        Log.e("AlarmReceiver", "Failed to clear override", e)
+        val pendingResult = goAsync()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                when (intent.action) {
+                    ACTION_CLEAR_OVERRIDE -> {
+                        Log.i("AlarmReceiver", "Triggered manual override clear")
+                        try {
+                            app.preferencesManager.setUserOverride(null)
+                        } catch (e: Exception) {
+                            Log.e("AlarmReceiver", "Failed to clear override", e)
+                        }
+                    }
+                    ACTION_ALARM_RING -> {
+                        val alarmIdStr = intent.getStringExtra(EXTRA_ALARM_ID) ?: return@launch
+                        val alarmId = alarmIdStr.toLongOrNull() ?: return@launch
+                        val ringIntent = Intent(context, Class.forName("com.cryptxploit.classmode.presentation.alarms.AlarmRingingActivity")).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                            putExtra(EXTRA_ALARM_ID, alarmIdStr)
+                        }
+                        
+                        val fullScreenPendingIntent = android.app.PendingIntent.getActivity(
+                            context,
+                            (alarmId * 100 + 6).toInt(),
+                            ringIntent,
+                            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                        )
+
+                        val notification = androidx.core.app.NotificationCompat.Builder(context, SystemNotificationManager.CHANNEL_ID_ALARMS)
+                            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                            .setContentTitle("Alarm Ringing")
+                            .setContentText("Tap to open alarm")
+                            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                            .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
+                            .setFullScreenIntent(fullScreenPendingIntent, true)
+                            .setOngoing(true)
+                            .setAutoCancel(false)
+                            .build()
+
+                        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                        notificationManager.notify((alarmId * 100).toInt(), notification)
+                        
+                        try {
+                            context.startActivity(ringIntent)
+                        } catch (e: Exception) {
+                            Log.e("AlarmReceiver", "Could not launch activity", e)
+                        }
+                    }
+                    ACTION_CLASS_START -> {
+                        val sessionIdStr = intent.getStringExtra(EXTRA_SESSION_ID) ?: return@launch
+                        val sessionId = sessionIdStr.toLongOrNull() ?: return@launch
+                        try {
+                            var state = triggerStateDao.getState(sessionId)
+                            if (state == null) {
+                                state = TriggerStateEntity(ruleId = sessionId, isTimeActive = true, lastUpdated = System.currentTimeMillis())
+                                triggerStateDao.insertOrUpdate(state)
+                            } else {
+                                triggerStateDao.updateTimeState(sessionId, true, System.currentTimeMillis())
+                            }
+                        } catch (e: Exception) {
+                            Log.e("AlarmReceiver", "Failed to update state for $sessionId", e)
+                        }
+                        reschedule(sessionId, scheduleDao, alarmScheduler)
+                    }
+                    ACTION_CLASS_END -> {
+                        val sessionIdStr = intent.getStringExtra(EXTRA_SESSION_ID) ?: return@launch
+                        val sessionId = sessionIdStr.toLongOrNull() ?: return@launch
+                        try {
+                            triggerStateDao.updateTimeState(sessionId, false, System.currentTimeMillis())
+                            val endedSchedule = scheduleDao.getScheduleById(sessionId)
+                            if (endedSchedule?.type == com.cryptxploit.classmode.domain.model.SessionType.FOCUS) {
+                                scheduleDao.deleteSchedule(endedSchedule)
+                            }
+                        } catch (e: Exception) {
+                            Log.e("AlarmReceiver", "Failed to update state for $sessionId", e)
+                        }
+                        reschedule(sessionId, scheduleDao, alarmScheduler)
+                    }
+                    ACTION_CLASS_REMINDER -> {
+                        val sessionIdStr = intent.getStringExtra(EXTRA_SESSION_ID) ?: return@launch
+                        val sessionId = sessionIdStr.toLongOrNull() ?: return@launch
+                        try {
+                            val schedule = scheduleDao.getScheduleById(sessionId)
+                            if (schedule != null) {
+                                val title = context.getString(R.string.status_next_class, 15)
+                                val message = schedule.title
+                                val notificationManager = SystemNotificationManager(context)
+                                notificationManager.showReminderNotification(title, message)
+                            }
+                        } catch (e: Exception) {
+                            Log.e("AlarmReceiver", "Failed to show reminder", e)
+                        }
                     }
                 }
-            }
-            ACTION_ALARM_RING -> {
-                val alarmIdStr = intent.getStringExtra(EXTRA_ALARM_ID) ?: return
-                val alarmId = alarmIdStr.toLongOrNull() ?: return
-                val ringIntent = Intent(context, Class.forName("com.cryptxploit.classmode.presentation.alarms.AlarmRingingActivity")).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                    putExtra(EXTRA_ALARM_ID, alarmIdStr)
-                }
-                
-                val fullScreenPendingIntent = android.app.PendingIntent.getActivity(
-                    context,
-                    (alarmId * 100 + 6).toInt(),
-                    ringIntent,
-                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                )
-
-                val notification = androidx.core.app.NotificationCompat.Builder(context, SystemNotificationManager.CHANNEL_ID_ALARMS)
-                    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-                    .setContentTitle("Alarm Ringing")
-                    .setContentText("Tap to open alarm")
-                    .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
-                    .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
-                    .setFullScreenIntent(fullScreenPendingIntent, true)
-                    .setOngoing(true)
-                    .setAutoCancel(false)
-                    .build()
-
-                val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-                notificationManager.notify((alarmId * 100).toInt(), notification)
-                
+            } finally {
+                pendingResult.finish()
                 try {
-                    context.startActivity(ringIntent)
+                    if (wakeLock.isHeld) {
+                        wakeLock.release()
+                    }
                 } catch (e: Exception) {
-                    Log.e("AlarmReceiver", "Could not launch activity", e)
-                }
-            }
-            ACTION_CLASS_START -> {
-                val sessionIdStr = intent.getStringExtra(EXTRA_SESSION_ID) ?: return
-                val sessionId = sessionIdStr.toLongOrNull() ?: return
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        var state = triggerStateDao.getState(sessionId)
-                        if (state == null) {
-                            state = TriggerStateEntity(ruleId = sessionId, isTimeActive = true, lastUpdated = System.currentTimeMillis())
-                            triggerStateDao.insertOrUpdate(state)
-                        } else {
-                            triggerStateDao.updateTimeState(sessionId, true, System.currentTimeMillis())
-                        }
-                    } catch (e: Exception) {
-                        Log.e("AlarmReceiver", "Failed to update state for $sessionId", e)
-                    }
-                }
-                reschedule(sessionId, scheduleDao, alarmScheduler)
-            }
-            ACTION_CLASS_END -> {
-                val sessionIdStr = intent.getStringExtra(EXTRA_SESSION_ID) ?: return
-                val sessionId = sessionIdStr.toLongOrNull() ?: return
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        triggerStateDao.updateTimeState(sessionId, false, System.currentTimeMillis())
-                        val endedSchedule = scheduleDao.getScheduleById(sessionId)
-                        if (endedSchedule?.type == com.cryptxploit.classmode.domain.model.SessionType.FOCUS) {
-                            scheduleDao.deleteSchedule(endedSchedule)
-                        }
-                    } catch (e: Exception) {
-                        Log.e("AlarmReceiver", "Failed to update state for $sessionId", e)
-                    }
-                }
-                reschedule(sessionId, scheduleDao, alarmScheduler)
-            }
-            ACTION_CLASS_REMINDER -> {
-                val sessionIdStr = intent.getStringExtra(EXTRA_SESSION_ID) ?: return
-                val sessionId = sessionIdStr.toLongOrNull() ?: return
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val schedule = scheduleDao.getScheduleById(sessionId)
-                        if (schedule != null) {
-                            val title = context.getString(R.string.status_next_class, 15)
-                            val message = schedule.title
-                            val notificationManager = SystemNotificationManager(context)
-                            notificationManager.showReminderNotification(title, message)
-                        }
-                    } catch (e: Exception) {
-                        Log.e("AlarmReceiver", "Failed to show reminder", e)
-                    }
+                    Log.e("AlarmReceiver", "Error releasing WakeLock", e)
                 }
             }
         }
     }
 
-    private fun reschedule(sessionId: Long, scheduleDao: com.cryptxploit.classmode.data.local.dao.ScheduleDao, alarmScheduler: SystemAlarmScheduler) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val schedule = scheduleDao.getScheduleById(sessionId)
-                if (schedule != null && schedule.isEnabled) {
-                    alarmScheduler.scheduleClass(schedule)
-                }
-            } catch (e: Exception) {
-                Log.e("AlarmReceiver", "Failed to reschedule alarm for $sessionId", e)
+    private suspend fun reschedule(sessionId: Long, scheduleDao: com.cryptxploit.classmode.data.local.dao.ScheduleDao, alarmScheduler: SystemAlarmScheduler) {
+        try {
+            val schedule = scheduleDao.getScheduleById(sessionId)
+            if (schedule != null && schedule.isEnabled) {
+                alarmScheduler.scheduleClass(schedule)
             }
+        } catch (e: Exception) {
+            Log.e("AlarmReceiver", "Failed to reschedule alarm for $sessionId", e)
         }
     }
 }
-
-
-
-
-
-

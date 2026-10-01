@@ -41,10 +41,10 @@ class SystemHapticController(context: Context, preferencesManager: PreferencesMa
         if (!isHapticsEnabled || vibrator == null || !vibrator.hasVibrator()) return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
+            vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK))
         } else {
             @Suppress("DEPRECATION")
-            vibrator.vibrate(20L)
+            vibrator.vibrate(40L)
         }
     }
 

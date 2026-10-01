@@ -1,6 +1,7 @@
 package com.cryptxploit.classmode
 
 import android.os.Bundle
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import android.content.Intent
 import android.app.NotificationManager
 import android.provider.Settings
@@ -33,6 +34,7 @@ import com.cryptxploit.classmode.presentation.main.MainScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        installSplashScreen()
 
         // Auto popup for DND permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
