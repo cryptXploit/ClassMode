@@ -32,6 +32,8 @@ import com.classmode.presentation.theme.LocalHaptic
 import com.classmode.R
 
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.BorderStroke
 import com.classmode.domain.model.SoundProfile
 import com.classmode.presentation.components.BannerAd
 
@@ -272,4 +274,5 @@ fun QuickActionCard(
         )
     }
 }
+
 
