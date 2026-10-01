@@ -34,7 +34,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(id = R.string.title_settings), fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.primary
@@ -68,12 +68,12 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Automation Enabled",
+                            stringResource(id = R.string.title_automation_enabled),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            "Allow app to automatically change ringer mode based on schedules",
+                            stringResource(id = R.string.desc_automation_enabled),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -138,13 +138,18 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         .padding(16.dp)
                 ) {
                     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
-                    Text("Theme Mode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(id = R.string.title_theme_mode), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("System", "Light", "Dark").forEach { mode ->
+                            val modeRes = when(mode) {
+                                "System" -> R.string.mode_system
+                                "Light" -> R.string.mode_light
+                                else -> R.string.mode_dark
+                            }
                             FilterChip(
                                 selected = themeMode == mode,
                                 onClick = { viewModel.setThemeMode(mode) },
-                                label = { Text(mode) }
+                                label = { Text(stringResource(id = modeRes)) }
                             )
                         }
                     }
@@ -152,13 +157,18 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     val language by viewModel.language.collectAsStateWithLifecycle()
-                    Text("Language", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(id = R.string.title_language), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("System", "English", "Bengali").forEach { lang ->
+                            val langRes = when(lang) {
+                                "System" -> R.string.mode_system
+                                "English" -> R.string.lang_english
+                                else -> R.string.lang_bengali
+                            }
                             FilterChip(
                                 selected = language == lang,
                                 onClick = { viewModel.setLanguage(lang) },
-                                label = { Text(lang) }
+                                label = { Text(stringResource(id = langRes)) }
                             )
                         }
                     }
@@ -178,13 +188,13 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         .padding(16.dp)
                 ) {
                     Text(
-                        "Storage Repair",
+                        stringResource(id = R.string.title_storage_repair),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                     Text(
-                        "If the app is malfunctioning, you can factory reset the local database and settings.",
+                        stringResource(id = R.string.desc_storage_repair),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
@@ -201,16 +211,16 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             if (showClearDialog) {
                 AlertDialog(
                     onDismissRequest = { showClearDialog = false },
-                    title = { Text("Factory Reset") },
-                    text = { Text("Are you sure? This will delete all your schedules, automation rules, and settings permanently.") },
+                    title = { Text(stringResource(id = R.string.title_factory_reset)) },
+                    text = { Text(stringResource(id = R.string.msg_factory_reset_confirm)) },
                     confirmButton = {
                         TextButton(onClick = {
                             viewModel.clearAllData()
                             showClearDialog = false
-                        }) { Text("Yes, Reset", color = MaterialTheme.colorScheme.error) }
+                        }) { Text(stringResource(id = R.string.action_yes_reset), color = MaterialTheme.colorScheme.error) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showClearDialog = false }) { Text("Cancel") }
+                        TextButton(onClick = { showClearDialog = false }) { Text(stringResource(id = R.string.action_cancel)) }
                     }
                 )
             }
@@ -227,12 +237,12 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         .padding(16.dp)
                 ) {
                     Text(
-                        "Default Ringer Mode",
+                        stringResource(id = R.string.title_default_ringer),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "Used when no active schedules apply",
+                        stringResource(id = R.string.desc_default_ringer),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -268,12 +278,12 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         .padding(16.dp)
                 ) {
                     Text(
-                        "Test Sound Profile",
+                        stringResource(id = R.string.title_test_profile),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "Verify physical device capability (requires permission)",
+                        stringResource(id = R.string.desc_test_profile),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -322,14 +332,17 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     Icon(Icons.Default.Info, contentDescription = "Info", tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text("App Version", style = MaterialTheme.typography.titleSmall)
-                        Text("1.0.0 (Beta)", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(id = R.string.title_app_version), style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(id = R.string.app_version_name), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
         }
     }
 }
+
+
+
 
 
 

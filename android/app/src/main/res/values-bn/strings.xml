@@ -78,7 +78,28 @@
     <string name="profile_normal">সাধারণ</string>
     <string name="profile_silent">সাইলেন্ট</string>
     <string name="profile_vibrate">ভাইব্রেট</string>
+    <string name="title_automation_enabled">অটোমেশন চালু আছে</string>
+    <string name="desc_automation_enabled">অ্যাপকে সময়সূচীর ওপর ভিত্তি করে স্বয়ংক্রিয়ভাবে রিংগার মোড পরিবর্তন করতে দিন</string>
+    <string name="title_theme_mode">থিম মোড</string>
+    <string name="mode_system">সিস্টেম</string>
+    <string name="mode_light">লাইট</string>
+    <string name="mode_dark">ডার্ক</string>
+    <string name="title_language">ভাষা</string>
+    <string name="lang_english">ইংরেজি</string>
+    <string name="lang_bengali">বাংলা</string>
+    <string name="title_storage_repair">স্টোরেজ মেরামত</string>
+    <string name="desc_storage_repair">অ্যাপ ঠিকমতো কাজ না করলে, আপনি লোকাল ডেটাবেস এবং সেটিংস ফ্যাক্টরি রিসেট করতে পারেন।</string>
+    <string name="title_factory_reset">ফ্যাক্টরি রিসেট</string>
+    <string name="msg_factory_reset_confirm">আপনি কি নিশ্চিত? এটি স্থায়ীভাবে আপনার সমস্ত সময়সূচী, অটোমেশন নিয়ম এবং সেটিংস মুছে ফেলবে।</string>
+    <string name="action_yes_reset">হ্যাঁ, রিসেট করুন</string>
+    <string name="title_default_ringer">ডিফল্ট রিংগার মোড</string>
+    <string name="desc_default_ringer">কোনো সক্রিয় সময়সূচী না থাকলে ব্যবহৃত হয়</string>
+    <string name="title_test_profile">টেস্ট সাউন্ড প্রোফাইল</string>
+    <string name="desc_test_profile">ফিজিক্যাল ডিভাইসের সক্ষমতা যাচাই করুন (পারমিশন প্রয়োজন)</string>
+    <string name="title_app_version">অ্যাপ ভার্সন</string>
+    <string name="app_version_name">১.০.০ (বিটা)</string>
 </resources>
+
 
 
 

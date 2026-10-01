@@ -78,7 +78,28 @@
     <string name="title_alarm_ringing">Alarm Ringing!</string>
     <string name="profile_normal">Normal</string>
     <string name="profile_silent">Silent</string>
+    <string name="title_automation_enabled">Automation Enabled</string>
+    <string name="desc_automation_enabled">Allow app to automatically change ringer mode based on schedules</string>
+    <string name="title_theme_mode">Theme Mode</string>
+    <string name="mode_system">System</string>
+    <string name="mode_light">Light</string>
+    <string name="mode_dark">Dark</string>
+    <string name="title_language">Language</string>
+    <string name="lang_english">English</string>
+    <string name="lang_bengali">Bengali</string>
+    <string name="title_storage_repair">Storage Repair</string>
+    <string name="desc_storage_repair">If the app is malfunctioning, you can factory reset the local database and settings.</string>
+    <string name="title_factory_reset">Factory Reset</string>
+    <string name="msg_factory_reset_confirm">Are you sure? This will delete all your schedules, automation rules, and settings permanently.</string>
+    <string name="action_yes_reset">Yes, Reset</string>
+    <string name="title_default_ringer">Default Ringer Mode</string>
+    <string name="desc_default_ringer">Used when no active schedules apply</string>
+    <string name="title_test_profile">Test Sound Profile</string>
+    <string name="desc_test_profile">Verify physical device capability (requires permission)</string>
+    <string name="title_app_version">App Version</string>
+    <string name="app_version_name">1.0.0 (Beta)</string>
 </resources>
+
 
 
 
