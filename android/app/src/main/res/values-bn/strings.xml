@@ -98,6 +98,9 @@
     <string name="desc_test_profile">ফিজিক্যাল ডিভাইসের সক্ষমতা যাচাই করুন (পারমিশন প্রয়োজন)</string>
     <string name="title_app_version">অ্যাপ ভার্সন</string>
     <string name="app_version_name">১.০.০ (বিটা)</string>
+    <string name="hint_search_location">অবস্থান অনুসন্ধান করুন...</string>
+    <string name="msg_location_not_found">অবস্থান পাওয়া যায়নি</string>
+    <string name="msg_permission_denied">অনুমতি প্রত্যাখ্যাত</string>
 </resources>
 
 

@@ -420,19 +420,13 @@ fun ScheduleEditorDialog(
                         )
                     }
 
-                    OutlinedTextField(
-                        value = lat,
-                        onValueChange = { lat = it },
-                        label = { Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.label_latitude)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = lon,
-                        onValueChange = { lon = it },
-                        label = { Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.label_longitude)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                    com.cryptxploit.classmode.presentation.components.LocationPicker(
+                        currentLat = lat.toDoubleOrNull(),
+                        currentLng = lon.toDoubleOrNull(),
+                        onLocationSelected = { newLat, newLng ->
+                            lat = String.format(java.util.Locale.US, "%.6f", newLat)
+                            lon = String.format(java.util.Locale.US, "%.6f", newLng)
+                        }
                     )
                 }
 

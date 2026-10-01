@@ -44,6 +44,7 @@ The haptic controller is now exposed to the Compose UI layer globally via LocalH
 - Complete EN/BN Localization Coverage
 - Global Error/Exception Handling (Diagnostic parity)
 - Production Release Signing Architecture
+- Premium Location Picker (Geocoder + GPS)
 
 ## Outstanding UI/UX Issues
 - The app is nearly complete. Just some final physical QA checks remain.

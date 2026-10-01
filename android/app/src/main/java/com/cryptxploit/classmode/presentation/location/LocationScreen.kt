@@ -270,24 +270,24 @@ fun FullScreenMapSelector(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             SmallFloatingActionButton(onClick = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
                 Icon(Icons.Default.ArrowBack, "Back")
             }
             
-            SmallFloatingActionButton(onClick = {
-                try {
-                    LocationServices.getFusedLocationProviderClient(context).lastLocation.addOnSuccessListener { loc ->
-                        loc?.let {
-                            val p = GeoPoint(it.latitude, it.longitude)
-                            selectedLocation = p
-                            mapView?.controller?.animateTo(p)
-                        }
+            Box(modifier = Modifier.weight(1f).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))) {
+                com.cryptxploit.classmode.presentation.components.LocationPicker(
+                    currentLat = selectedLocation?.latitude,
+                    currentLng = selectedLocation?.longitude,
+                    onLocationSelected = { newLat, newLng ->
+                        val p = GeoPoint(newLat, newLng)
+                        selectedLocation = p
+                        mapView?.controller?.animateTo(p)
+                        mapView?.controller?.setZoom(17.0)
                     }
-                } catch(e: SecurityException){}
-            }, containerColor = MaterialTheme.colorScheme.surface) {
-                Icon(Icons.Default.Place, "Current Location")
+                )
             }
         }
 
