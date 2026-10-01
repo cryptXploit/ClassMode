@@ -2,7 +2,7 @@
 
 **Date of Update:** 2026-10-01
 **Git Branch:** main
-**Latest Commit Hash:** f75c046a5af686368293a3fdafb5231896903c82
+**Release Candidate:** v2.0.0-rc2
 
 ## Project Purpose
 ClassMode is an Android application designed to automate physical device sound profiles (Normal, Vibrate, Silent, DND) based on a combination of exact time schedules, geofenced campus locations, and priority-based overrides (e.g., Exams > Classes > Sleep). 
@@ -51,6 +51,7 @@ The haptic controller is now exposed to the Compose UI layer globally via LocalH
 
 ## Current Phase Status
 - **Next pending step:** Physical QA Execution by Human Developer
+
 
 
 
