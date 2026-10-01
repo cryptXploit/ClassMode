@@ -2,7 +2,7 @@
 
 **Date of Update:** 2026-10-01
 **Git Branch:** main
-**Current Version:** v2.0.1
+**Current Version:** v1.0.0
 
 ## Project Purpose
 ClassMode is an Android application designed to automate physical device sound profiles (Normal, Vibrate, Silent, DND) based on a combination of exact time schedules, geofenced campus locations, and priority-based overrides (e.g., Exams > Classes > Sleep). 
