@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">ক্লাসমোড</string>
                 <string name="status_automation_active">অটোমেশন চালু আছে</string>
     <string name="status_next_class">পরবর্তী ক্লাস %1$d মিনিট পর</string>

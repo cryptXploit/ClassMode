@@ -1,4 +1,4 @@
-{
+﻿{
   "project_info": {
     "project_number": "123456789012",
     "project_id": "dummy-project-id",
@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:123456789012:android:0987654321fedcba",
         "android_client_info": {
-          "package_name": "com.classmode.debug"
+          "package_name": "com.cryptxploit.classmode.debug"
         }
       },
       "api_key": [
@@ -22,7 +22,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:123456789012:android:0987654321fedcba",
         "android_client_info": {
-          "package_name": "com.classmode"
+          "package_name": "com.cryptxploit.classmode"
         }
       },
       "api_key": [
@@ -34,3 +34,5 @@
   ],
   "configuration_version": "1"
 }
+
+

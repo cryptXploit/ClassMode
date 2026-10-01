@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">ClassMode</string>
                 <string name="status_automation_active">Automation Active</string>
     <string name="status_next_class">Next class in %1$d mins</string>

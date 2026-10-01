@@ -1,9 +1,9 @@
-﻿# Preserve Room database models and DAOs
--keep class com.classmode.data.local.entity.** { *; }
--keep class com.classmode.data.local.dao.** { *; }
+# Preserve Room database models and DAOs
+-keep class com.cryptxploit.classmode.data.local.entity.** { *; }
+-keep class com.cryptxploit.classmode.data.local.dao.** { *; }
 
 # Preserve DataStore preferences models
--keep class com.classmode.data.preferences.** { *; }
+-keep class com.cryptxploit.classmode.data.preferences.** { *; }
 
 # Preserve Coroutines Service Loader
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
@@ -15,10 +15,11 @@
 -dontwarn com.google.android.gms.ads.**
 
 # Ensure domain enums are not obfuscated to break DataStore/Room mapping
--keepclassmembers enum com.classmode.domain.model.** {
+-keepclassmembers enum com.cryptxploit.classmode.domain.model.** {
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
 
 # Preserve System Receivers declared in AndroidManifest
--keep class com.classmode.data.receiver.** { *; }
+-keep class com.cryptxploit.classmode.data.receiver.** { *; }
+

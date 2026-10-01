@@ -1,4 +1,4 @@
-﻿import java.util.Properties
+import java.util.Properties
 import java.io.FileInputStream
 
 plugins {
@@ -16,11 +16,11 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.classmode"
+    namespace = "com.cryptxploit.classmode"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.classmode"
+        applicationId = "com.cryptxploit.classmode"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -109,6 +109,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
 }
+
 
 
 
