@@ -1,4 +1,4 @@
-package com.classmode.presentation.dashboard
+﻿package com.classmode.presentation.dashboard
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -26,8 +26,12 @@ import androidx.compose.animation.core.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import com.classmode.presentation.components.EmptyStateView
+import com.classmode.presentation.theme.LocalHaptic
+import com.classmode.R
+
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.classmode.domain.model.SoundProfile
 import com.classmode.presentation.components.BannerAd
 
@@ -37,6 +41,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
     val effectiveProfile by viewModel.effectiveProfile.collectAsStateWithLifecycle()
     val contextSnapshot by viewModel.contextSnapshot.collectAsStateWithLifecycle()
     val healthStatus by viewModel.healthStatus.collectAsStateWithLifecycle()
+    val haptic = LocalHaptic.current
 
     Scaffold(
         topBar = {
@@ -153,17 +158,20 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                     
                     if (contextSnapshot?.userOverride != null) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        SuggestionChip(
-                            onClick = { viewModel.clearOverride() },
-                            label = { Text("Manual Override Active") },
-                            icon = { Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(16.dp)) },
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = Color.White.copy(alpha = 0.2f),
-                                labelColor = Color.White,
-                                iconContentColor = Color.White
+                        OutlinedButton(
+                            onClick = {
+                                haptic.performClickEffect()
+                                viewModel.clearOverride()
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color.White
                             ),
-                            border = null
-                        )
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.action_clear_override))
+                        }
                     }
                 }
             }
@@ -189,19 +197,28 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                     modifier = Modifier.weight(1f),
                     title = "Silent",
                     isSelected = contextSnapshot?.userOverride == SoundProfile.SILENT,
-                    onClick = { viewModel.setTemporaryOverride(SoundProfile.SILENT) }
+                    onClick = {
+                        haptic.performClickEffect()
+                        viewModel.setTemporaryOverride(SoundProfile.SILENT)
+                    }
                 )
                 QuickActionCard(
                     modifier = Modifier.weight(1f),
                     title = "Vibrate",
                     isSelected = contextSnapshot?.userOverride == SoundProfile.VIBRATE,
-                    onClick = { viewModel.setTemporaryOverride(SoundProfile.VIBRATE) }
+                    onClick = {
+                        haptic.performClickEffect()
+                        viewModel.setTemporaryOverride(SoundProfile.VIBRATE)
+                    }
                 )
                 QuickActionCard(
                     modifier = Modifier.weight(1f),
                     title = "Normal",
                     isSelected = contextSnapshot?.userOverride == SoundProfile.NORMAL,
-                    onClick = { viewModel.setTemporaryOverride(SoundProfile.NORMAL) }
+                    onClick = {
+                        haptic.performClickEffect()
+                        viewModel.setTemporaryOverride(SoundProfile.NORMAL)
+                    }
                 )
             }
             
@@ -232,7 +249,6 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickActionCard(
     modifier: Modifier = Modifier,
@@ -240,20 +256,20 @@ fun QuickActionCard(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    Card(
+    Button(
         onClick = onClick,
-        modifier = modifier.height(80.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-        )
+        modifier = modifier.height(60.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
+

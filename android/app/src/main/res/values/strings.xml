@@ -65,7 +65,11 @@
     <string name="title_warning">Warning</string>
     <string name="msg_delete_alarm">Are you sure you want to delete this alarm?</string>
     <string name="msg_delete_location">Are you sure you want to delete this location?</string>
+    <string name="title_all_clear">All Clear</string>
+    <string name="msg_no_active_classes">No classes currently active</string>
+    <string name="action_clear_override">Clear Override</string>
 </resources>
+
 
 
 
