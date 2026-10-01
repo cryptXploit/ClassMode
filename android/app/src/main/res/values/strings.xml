@@ -1,9 +1,6 @@
 ﻿<resources>
     <string name="app_name">ClassMode</string>
-    <string name="profile_normal">Normal</string>
-    <string name="profile_vibrate">Vibrate</string>
-    <string name="profile_silent">Silent</string>
-    <string name="status_automation_active">Automation Active</string>
+                <string name="status_automation_active">Automation Active</string>
     <string name="status_next_class">Next class in %1$d mins</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="section_current_profile">Current Profile</string>
@@ -73,7 +70,19 @@
     <string name="title_new_schedule">New Schedule</string>
     <string name="title_edit_schedule">Edit Schedule</string>
     <string name="error_location_invalid">Please provide valid latitude and longitude</string>
+    <string name="action_snooze">Snooze</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="action_factory_reset">Factory Reset App Data</string>
+        <string name="profile_vibrate">Vib</string>
+        <string name="profile_dnd">DND</string>
+    <string name="title_alarm_ringing">Alarm Ringing!</string>
+    <string name="profile_normal">Normal</string>
+    <string name="profile_silent">Silent</string>
 </resources>
+
+
+
+
 
 
 

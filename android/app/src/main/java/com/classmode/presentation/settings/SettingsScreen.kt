@@ -193,7 +193,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         onClick = { showClearDialog = true },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                     ) {
-                        Text("Factory Reset App Data")
+                        Text(stringResource(id = R.string.action_factory_reset))
                     }
                 }
             }
@@ -240,10 +240,16 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         SoundProfile.values().forEach { profile ->
+                            val profileNameRes = when(profile) {
+                                com.classmode.domain.model.SoundProfile.NORMAL -> R.string.profile_normal
+                                com.classmode.domain.model.SoundProfile.VIBRATE -> R.string.profile_vibrate
+                                com.classmode.domain.model.SoundProfile.SILENT -> R.string.profile_silent
+                                com.classmode.domain.model.SoundProfile.DND -> R.string.profile_dnd
+                            }
                             FilterChip(
                                 selected = defaultProfile == profile,
                                 onClick = { viewModel.setDefaultProfile(profile) },
-                                label = { Text(profile.name) }
+                                label = { Text(stringResource(id = profileNameRes)) }
                             )
                         }
                     }
@@ -278,15 +284,15 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(onClick = { viewModel.testSoundProfile(SoundProfile.NORMAL) }, modifier = Modifier.weight(1f)) { Text("Normal") }
-                        Button(onClick = { viewModel.testSoundProfile(SoundProfile.VIBRATE) }, modifier = Modifier.weight(1f)) { Text("Vib") }
+                        Button(onClick = { viewModel.testSoundProfile(SoundProfile.NORMAL) }, modifier = Modifier.weight(1f)) { Text(stringResource(id = R.string.profile_normal)) }
+                        Button(onClick = { viewModel.testSoundProfile(SoundProfile.VIBRATE) }, modifier = Modifier.weight(1f)) { Text(stringResource(id = R.string.profile_vibrate)) }
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(onClick = { viewModel.testSoundProfile(SoundProfile.SILENT) }, modifier = Modifier.weight(1f)) { Text("Silent") }
-                        Button(onClick = { viewModel.testSoundProfile(SoundProfile.DND) }, modifier = Modifier.weight(1f)) { Text("DND") }
+                        Button(onClick = { viewModel.testSoundProfile(SoundProfile.SILENT) }, modifier = Modifier.weight(1f)) { Text(stringResource(id = R.string.profile_silent)) }
+                        Button(onClick = { viewModel.testSoundProfile(SoundProfile.DND) }, modifier = Modifier.weight(1f)) { Text(stringResource(id = R.string.profile_dnd)) }
                     }
                     
                     testResult?.let {
@@ -324,4 +330,6 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         }
     }
 }
+
+
 
