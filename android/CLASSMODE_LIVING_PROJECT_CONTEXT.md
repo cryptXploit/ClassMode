@@ -39,14 +39,5 @@ The haptic controller is now exposed to the Compose UI layer globally via LocalH
 - **Global Destructive Action Safety:** All primary screens (Schedules, Locations, Alarms) now require explicit confirmation before deletion.
 
 ## Outstanding UI/UX Issues
-- SchedulesScreen delete safety and empty state modernization is complete. Delete operations in other screens (like Locations or Alarms) are instantaneous with no DestructiveConfirmationDialog.
-- Unify the UI Design System (Colors, Typography, standardized Cards).
-- Complete Bengali string localization for remaining nested UI elements.
-
-
-
-
-
-
-
+- The app is nearly complete. Just some final physical QA checks remain.
 

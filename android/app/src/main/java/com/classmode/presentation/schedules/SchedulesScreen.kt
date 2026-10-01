@@ -246,6 +246,8 @@ fun ScheduleEditorDialog(
     onDismiss: () -> Unit,
     onConfirm: (ScheduleEntity, com.classmode.data.local.entity.GeofenceEntity?) -> Unit
 ) {
+    val haptic = LocalHaptic.current
+    var validationErrorRes by remember { mutableStateOf<Int?>(null) }
     var selectedType by remember { mutableStateOf(initialSchedule?.type ?: SessionType.CLASS) }
     var selectedDays by remember { mutableStateOf(initialSchedule?.daysOfWeek ?: 62) } // Mon-Fri default
     var soundProfile by remember { mutableStateOf(initialSchedule?.soundProfile ?: SoundProfile.VIBRATE) }
@@ -275,7 +277,7 @@ fun ScheduleEditorDialog(
                 .fillMaxSize()
                 .padding(16.dp),
             shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surface
+            color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             Column(
                 modifier = Modifier
@@ -285,8 +287,9 @@ fun ScheduleEditorDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = if (initialSchedule == null) "New Schedule" else "Edit Schedule",
-                    style = MaterialTheme.typography.headlineSmall
+                    text = if (initialSchedule == null) androidx.compose.ui.res.stringResource(com.classmode.R.string.title_new_schedule) else androidx.compose.ui.res.stringResource(com.classmode.R.string.title_edit_schedule),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
                 OutlinedTextField(
@@ -435,31 +438,63 @@ fun ScheduleEditorDialog(
 
                 Spacer(modifier = Modifier.weight(1f))
                 
+                validationErrorRes?.let { errRes ->
+                    Text(
+                        text = androidx.compose.ui.res.stringResource(errRes),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_cancel)) }
+                    TextButton(
+                        onClick = { 
+                            haptic.performClickEffect()
+                            onDismiss() 
+                        }
+                    ) { 
+                        Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_cancel)) 
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            val entity = ScheduleEntity(
-                                id = initialSchedule?.id ?: 0,
-                                type = selectedType,
-                                title = title.ifBlank { selectedType.name },
-                                startTimeMins = startTimeState.hour * 60 + startTimeState.minute,
-                                endTimeMins = endTimeState.hour * 60 + endTimeState.minute,
-                                daysOfWeek = selectedDays,
-                                soundProfile = soundProfile,
-                                condition = condition,
-                                isEnabled = initialSchedule?.isEnabled ?: true
-                            )
-                            onConfirm(entity, if (condition == AutomationRuleCondition.TIME_ONLY) null else com.classmode.data.local.entity.GeofenceEntity(ruleId = entity.id, latitude = lat.toDouble(), longitude = lon.toDouble(), radiusMeters = 100f))
-                        },
-                        enabled = selectedDays > 0 && title.isNotBlank() && (endMins != startMins) && (
-                            condition == AutomationRuleCondition.TIME_ONLY || (lat.isNotBlank() && lon.isNotBlank() && lat.toDoubleOrNull() != null && lon.toDoubleOrNull() != null)
-                        )
+                            haptic.performClickEffect()
+                            
+                            val isTitleValid = title.isNotBlank()
+                            val isTimeValid = endMins != startMins
+                            val isDaysValid = selectedDays > 0
+                            val isLocationValid = condition == AutomationRuleCondition.TIME_ONLY || (lat.isNotBlank() && lon.isNotBlank() && lat.toDoubleOrNull() != null && lon.toDoubleOrNull() != null)
+                            
+                            if (!isDaysValid) {
+                                validationErrorRes = com.classmode.R.string.error_no_days
+                            } else if (!isTimeValid) {
+                                validationErrorRes = com.classmode.R.string.error_time_same
+                            } else if (!isTitleValid) {
+                                validationErrorRes = com.classmode.R.string.label_class_title
+                            } else if (!isLocationValid) {
+                                validationErrorRes = com.classmode.R.string.error_location_invalid
+                            } else {
+                                validationErrorRes = null
+                                val entity = ScheduleEntity(
+                                    id = initialSchedule?.id ?: 0,
+                                    type = selectedType,
+                                    title = title,
+                                    startTimeMins = startMins,
+                                    endTimeMins = endMins,
+                                    daysOfWeek = selectedDays,
+                                    soundProfile = soundProfile,
+                                    condition = condition,
+                                    isEnabled = initialSchedule?.isEnabled ?: true
+                                )
+                                onConfirm(entity, if (condition == AutomationRuleCondition.TIME_ONLY) null else com.classmode.data.local.entity.GeofenceEntity(ruleId = entity.id, latitude = lat.toDouble(), longitude = lon.toDouble(), radiusMeters = 100f))
+                            }
+                        }
                     ) {
                         Text(androidx.compose.ui.res.stringResource(com.classmode.R.string.action_save))
                     }
@@ -500,6 +535,9 @@ fun TimePickerDialog(
         text = { content() }
     )
 }
+
+
+
 
 
 

@@ -70,7 +70,11 @@
     <string name="action_clear_override">Clear Override</string>
     <string name="title_haptic_feedback">Haptic Feedback</string>
     <string name="desc_haptic_feedback">Enable touch and automation vibrations</string>
+    <string name="title_new_schedule">New Schedule</string>
+    <string name="title_edit_schedule">Edit Schedule</string>
+    <string name="error_location_invalid">Please provide valid latitude and longitude</string>
 </resources>
+
 
 
 
