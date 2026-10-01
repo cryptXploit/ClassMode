@@ -16,6 +16,12 @@ class SettingsViewModel(
     private val systemAudioController: SystemAudioController,
     private val appDatabase: com.classmode.data.local.AppDatabase
 ) : ViewModel() {
+    val isHapticsEnabled = preferencesManager.isHapticsEnabledFlow.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = true
+    )
+
     val isAutomationEnabled = preferencesManager.isAutomationEnabledFlow.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -46,6 +52,12 @@ class SettingsViewModel(
     fun toggleAutomation(enabled: Boolean) {
         viewModelScope.launch {
             preferencesManager.setAutomationEnabled(enabled)
+        }
+    }
+
+    fun toggleHaptics(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.setHapticsEnabled(enabled)
         }
     }
 
@@ -88,3 +100,4 @@ class SettingsViewModel(
         }
     }
 }
+

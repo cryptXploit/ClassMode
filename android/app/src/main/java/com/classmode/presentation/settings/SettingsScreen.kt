@@ -12,6 +12,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.classmode.presentation.theme.LocalHaptic
+import com.classmode.R
+import androidx.compose.foundation.clickable
+
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -21,8 +26,10 @@ import com.classmode.domain.model.SoundProfile
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
     val isAutomationEnabled by viewModel.isAutomationEnabled.collectAsStateWithLifecycle()
+    val isHapticsEnabled by viewModel.isHapticsEnabled.collectAsStateWithLifecycle()
     val defaultProfile by viewModel.defaultProfile.collectAsStateWithLifecycle()
     val testResult by viewModel.testResult.collectAsStateWithLifecycle()
+    val haptic = LocalHaptic.current
 
     Scaffold(
         topBar = {
@@ -74,6 +81,47 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     Switch(
                         checked = isAutomationEnabled,
                         onCheckedChange = { viewModel.toggleAutomation(it) }
+                    )
+                }
+            }
+
+            // Haptic Feedback
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        val newValue = !isHapticsEnabled
+                        viewModel.toggleHaptics(newValue)
+                        if (newValue) haptic.performClickEffect() // Play only when turning ON or already ON
+                    },
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.title_haptic_feedback),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            stringResource(R.string.desc_haptic_feedback),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isHapticsEnabled,
+                        onCheckedChange = { 
+                            viewModel.toggleHaptics(it)
+                            if (it) haptic.performClickEffect()
+                        }
                     )
                 }
             }
@@ -276,3 +324,4 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         }
     }
 }
+

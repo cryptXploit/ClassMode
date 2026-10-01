@@ -68,7 +68,10 @@
     <string name="title_all_clear">সব পরিষ্কার</string>
     <string name="msg_no_active_classes">বর্তমানে কোন ক্লাস সক্রিয় নেই</string>
     <string name="action_clear_override">ওভাররাইড মুছুন</string>
+    <string name="title_haptic_feedback">হ্যাপটিক ফিডব্যাক</string>
+    <string name="desc_haptic_feedback">স্পর্শ এবং স্বয়ংক্রিয় ভাইব্রেশন সক্ষম করুন</string>
 </resources>
+
 
 
 

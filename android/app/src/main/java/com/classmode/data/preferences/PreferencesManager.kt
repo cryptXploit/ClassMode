@@ -24,6 +24,7 @@ class PreferencesManager(private val context: Context) {
         val KEY_DIAGNOSTICS_OPT_IN = booleanPreferencesKey("diagnostics_opt_in")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val LANGUAGE = stringPreferencesKey("language")
+        val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
     }
 
     val isDiagnosticsOptInFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
@@ -56,6 +57,10 @@ class PreferencesManager(private val context: Context) {
         preferences[LANGUAGE] ?: "System"
     }
 
+    val isHapticsEnabledFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[HAPTICS_ENABLED] ?: true
+    }
+
     suspend fun setDefaultProfile(profile: SoundProfile) {
         context.dataStore.edit { preferences ->
             preferences[DEFAULT_PROFILE] = profile.name
@@ -86,6 +91,12 @@ class PreferencesManager(private val context: Context) {
         }
     }
 
+    suspend fun setHapticsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[HAPTICS_ENABLED] = enabled
+        }
+    }
+
     suspend fun clearAllData() {
         context.dataStore.edit { it.clear() }
     }
@@ -102,3 +113,4 @@ class PreferencesManager(private val context: Context) {
         }
     }
 }
+

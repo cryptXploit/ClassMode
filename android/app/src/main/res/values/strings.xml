@@ -68,7 +68,10 @@
     <string name="title_all_clear">All Clear</string>
     <string name="msg_no_active_classes">No classes currently active</string>
     <string name="action_clear_override">Clear Override</string>
+    <string name="title_haptic_feedback">Haptic Feedback</string>
+    <string name="desc_haptic_feedback">Enable touch and automation vibrations</string>
 </resources>
+
 
 
 

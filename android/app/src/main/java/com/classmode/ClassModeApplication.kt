@@ -45,7 +45,7 @@ class ClassModeApplication : Application() {
         geofenceManager = com.classmode.data.system.GeofenceManager(this)
         restoreStateRepository = RestoreStateRepository(this)
         systemNotificationManager = SystemNotificationManager(this)
-        systemHapticController = SystemHapticController(this)
+        systemHapticController = SystemHapticController(this, preferencesManager)
         
         // Initialize Domain/Automation Logic
         contextEngine = ContextEngine(
@@ -77,4 +77,5 @@ class ClassModeApplication : Application() {
         orchestrator.start(kotlinx.coroutines.GlobalScope)
     }
 }
+
 
