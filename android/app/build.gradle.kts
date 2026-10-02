@@ -17,14 +17,14 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.cryptxploit.classmode"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.cryptxploit.classmode"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 2
-        versionName = "1.1.1"
+        targetSdk = 36
+        versionCode = 3
+        versionName = "1.1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
