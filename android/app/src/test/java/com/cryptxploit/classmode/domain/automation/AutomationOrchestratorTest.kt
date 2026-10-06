@@ -18,6 +18,7 @@ import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.resetMain
@@ -58,7 +59,7 @@ class AutomationOrchestratorTest {
         hapticController = mockk(relaxed = true)
         preferencesManager = mockk(relaxed = true)
 
-        every { contextEngine.observeContext() } returns kotlinx.coroutines.flow.filterNotNull(contextFlow)
+        every { contextEngine.observeContext() } returns contextFlow.filterNotNull()
         every { preferencesManager.lastResolvedProfileFlow } returns lastResolvedFlow
         
         orchestrator = AutomationOrchestrator(
@@ -97,7 +98,7 @@ class AutomationOrchestratorTest {
         // It should NOT call applyProfile
         verify(exactly = 0) { audioController.applyProfile(any()) }
         // But it SHOULD save the last resolved target
-        verify { preferencesManager.setLastResolvedProfile(SoundProfile.NORMAL) }
+        coVerify { preferencesManager.setLastResolvedProfile(SoundProfile.NORMAL) }
     }
 
     @Test
@@ -119,7 +120,7 @@ class AutomationOrchestratorTest {
         verify(exactly = 1) { hapticController.performAutomationTransitionEffect() }
         verify(exactly = 1) { notificationManager.showAutomationStatus(any(), any()) }
         coVerify(exactly = 1) { eventDao.insertEvent(any()) }
-        verify { preferencesManager.setLastResolvedProfile(SoundProfile.VIBRATE) }
+        coVerify { preferencesManager.setLastResolvedProfile(SoundProfile.VIBRATE) }
     }
 
     @Test
