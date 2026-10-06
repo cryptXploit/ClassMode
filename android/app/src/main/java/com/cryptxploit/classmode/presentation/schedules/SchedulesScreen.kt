@@ -1,4 +1,4 @@
-package com.cryptxploit.classmode.presentation.schedules
+﻿package com.cryptxploit.classmode.presentation.schedules
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,7 +12,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
-import com.cryptxploit.classmode.presentation.components.EmptyState
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -32,19 +31,26 @@ import com.cryptxploit.classmode.domain.model.SoundProfile
 import com.cryptxploit.classmode.presentation.components.DestructiveConfirmationDialog
 import com.cryptxploit.classmode.presentation.components.EmptyStateView
 import com.cryptxploit.classmode.presentation.theme.LocalHaptic
+import com.cryptxploit.classmode.presentation.theme.ClassModeTheme
+import com.cryptxploit.classmode.presentation.theme.pressClickEffect
+import com.cryptxploit.classmode.presentation.components.ClassModeCard
+import com.cryptxploit.classmode.R
+import androidx.compose.ui.res.stringResource
+import com.cryptxploit.classmode.presentation.components.LocationPicker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SchedulesScreen(viewModel: ScheduleViewModel) {
-    val schedules by viewModel.schedules.collectAsStateWithLifecycle(initialValue = emptyList<ScheduleEntity>())
+    val schedules by viewModel.schedules.collectAsStateWithLifecycle(initialValue = emptyList())
     var showEditorDialog by remember { mutableStateOf(false) }
     var scheduleToEdit by remember { mutableStateOf<ScheduleEntity?>(null) }
     var scheduleToDelete by remember { mutableStateOf<ScheduleEntity?>(null) }
+    val haptic = LocalHaptic.current
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.title_schedules), fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.title_schedules), fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.primary
@@ -52,22 +58,28 @@ fun SchedulesScreen(viewModel: ScheduleViewModel) {
             )
         },
         floatingActionButton = {
+            val fabInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
             FloatingActionButton(
                 onClick = {
+                    haptic.performClickEffect()
                     scheduleToEdit = null
                     showEditorDialog = true
                 },
+                interactionSource = fabInteractionSource,
+                modifier = Modifier.pressClickEffect(fabInteractionSource),
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Schedule")
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         if (schedules.isEmpty()) {
             EmptyStateView(
-                title = androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.title_schedules),
-                subtitle = androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.msg_no_upcoming),
+                title = stringResource(R.string.title_schedules),
+                subtitle = stringResource(R.string.msg_no_upcoming),
                 icon = Icons.Default.DateRange,
                 modifier = Modifier.padding(paddingValues)
             )
@@ -77,18 +89,25 @@ fun SchedulesScreen(viewModel: ScheduleViewModel) {
                     .fillMaxSize()
                     .padding(paddingValues)
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp)
             ) {
                 items(schedules, key = { it.id }) { schedule ->
                     ScheduleItemCard(
                         schedule = schedule,
-                        onToggle = { isActive -> viewModel.toggleSchedule(schedule, isActive) },
+                        onToggle = { isActive -> 
+                            haptic.performClickEffect()
+                            viewModel.toggleSchedule(schedule, isActive) 
+                        },
                         onEdit = {
+                            haptic.performClickEffect()
                             scheduleToEdit = schedule
                             showEditorDialog = true
                         },
-                        onDelete = { scheduleToDelete = schedule }
+                        onDelete = { 
+                            haptic.performClickEffect()
+                            scheduleToDelete = schedule 
+                        }
                     )
                 }
             }
@@ -97,8 +116,8 @@ fun SchedulesScreen(viewModel: ScheduleViewModel) {
     
     DestructiveConfirmationDialog(
         showDialog = scheduleToDelete != null,
-        title = androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.title_delete_schedule),
-        text = androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.msg_delete_schedule, scheduleToDelete?.title?.takeIf { it.isNotBlank() } ?: scheduleToDelete?.type?.name ?: ""),
+        title = stringResource(R.string.title_delete_schedule),
+        text = stringResource(R.string.msg_delete_schedule, scheduleToDelete?.title?.takeIf { it.isNotBlank() } ?: scheduleToDelete?.type?.name ?: ""),
         onConfirm = {
             scheduleToDelete?.let { viewModel.deleteSchedule(it) }
             scheduleToDelete = null
@@ -125,44 +144,77 @@ fun ScheduleItemCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val haptic = LocalHaptic.current
-    Card(
+    val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    
+    val containerColor = if (schedule.isEnabled) ClassModeTheme.semanticColors.surfaceElevated 
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    
+    val semanticStatusColor = when (schedule.soundProfile) {
+        SoundProfile.SILENT -> ClassModeTheme.semanticColors.statusSilent
+        SoundProfile.VIBRATE -> ClassModeTheme.semanticColors.statusVibrate
+        SoundProfile.DND -> ClassModeTheme.semanticColors.statusDnd
+        SoundProfile.NORMAL -> ClassModeTheme.semanticColors.statusNormal
+    }
+    
+    val borderStroke = if (schedule.isEnabled) androidx.compose.foundation.BorderStroke(1.dp, semanticStatusColor.copy(alpha = 0.3f)) else null
+
+    ClassModeCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                haptic.performClickEffect()
-                onEdit()
-            },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (schedule.isEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .pressClickEffect(interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onEdit,
+                onClickLabel = "Edit Schedule"
+            ),
+        containerColor = containerColor,
+        border = borderStroke
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(20.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = if (schedule.title.isNotBlank()) schedule.title else schedule.type.name,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = if (schedule.isEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Mode: ${schedule.soundProfile.name} | ${schedule.condition.name.replace("_", " ")}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (schedule.isEnabled) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        color = if (schedule.isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     
                     Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            color = (if (schedule.isEnabled) semanticStatusColor else MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = schedule.soundProfile.name,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (schedule.isEnabled) semanticStatusColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        Text(
+                            text = schedule.condition.name.replace("_", " "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
                     
                     val startHour = schedule.startTimeMins / 60
                     val startMin = schedule.startTimeMins % 60
@@ -170,22 +222,25 @@ fun ScheduleItemCard(
                     val endMin = schedule.endTimeMins % 60
                     Text(
                         text = String.format("%02d:%02d - %02d:%02d", startHour, startMin, endHour, endMin),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (schedule.isEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = if (schedule.isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Switch(
                     checked = schedule.isEnabled,
                     onCheckedChange = onToggle,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.primary,
-                        checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = ClassModeTheme.semanticColors.statusActive,
                         uncheckedThumbColor = MaterialTheme.colorScheme.outline,
                         uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 )
             }
             
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
             Spacer(modifier = Modifier.height(16.dp))
             
             Row(
@@ -194,45 +249,47 @@ fun ScheduleItemCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Days Row
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     val days = listOf("S", "M", "T", "W", "T", "F", "S")
                     for (i in 0..6) {
                         val isSelected = (schedule.daysOfWeek and (1 shl i)) != 0
                         Box(
                             modifier = Modifier
-                                .size(28.dp)
+                                .size(32.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.surface
+                                    when {
+                                        isSelected && schedule.isEnabled -> ClassModeTheme.semanticColors.statusActive.copy(alpha = 0.15f)
+                                        isSelected && !schedule.isEnabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
+                                        else -> androidx.compose.ui.graphics.Color.Transparent
+                                    }
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = days[i],
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurface
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = when {
+                                    isSelected && schedule.isEnabled -> ClassModeTheme.semanticColors.statusActive
+                                    isSelected && !schedule.isEnabled -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                }
                             )
                         }
                     }
                 }
                 
-                Row {
-                    IconButton(onClick = onEdit) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "Edit",
-                            tint = if (schedule.isEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.action_delete),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.action_delete),
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
@@ -287,7 +344,7 @@ fun ScheduleEditorDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = if (initialSchedule == null) androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.title_new_schedule) else androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.title_edit_schedule),
+                    text = if (initialSchedule == null) stringResource(R.string.title_new_schedule) else stringResource(R.string.title_edit_schedule),
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -295,12 +352,12 @@ fun ScheduleEditorDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.label_class_title)) },
+                    label = { Text(stringResource(R.string.label_class_title)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
 
-                Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.label_session_type), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.label_session_type), style = MaterialTheme.typography.labelLarge)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SessionType.values().filter { it != SessionType.MANUAL_OVERRIDE }.forEach { type ->
                         FilterChip(
@@ -316,10 +373,10 @@ fun ScheduleEditorDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     OutlinedButton(onClick = { showStartTimePicker = true }) {
-                        Text(String.format(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.label_start_time), startTimeState.hour, startTimeState.minute))
+                        Text(String.format(stringResource(R.string.label_start_time), startTimeState.hour, startTimeState.minute))
                     }
                     OutlinedButton(onClick = { showEndTimePicker = true }) {
-                        Text(String.format(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.label_end_time), endTimeState.hour, endTimeState.minute))
+                        Text(String.format(stringResource(R.string.label_end_time), endTimeState.hour, endTimeState.minute))
                     }
                 }
                 
@@ -327,10 +384,10 @@ fun ScheduleEditorDialog(
                 val startMins = startTimeState.hour * 60 + startTimeState.minute
                 val endMins = endTimeState.hour * 60 + endTimeState.minute
                 if (endMins == startMins) {
-                    Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.error_time_same), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.error_time_same), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
 
-                Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.label_repeat_days), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.label_repeat_days), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                     val days = listOf("S", "M", "T", "W", "T", "F", "S")
                     for (i in 0..6) {
@@ -351,10 +408,10 @@ fun ScheduleEditorDialog(
                     }
                 }
                 if (selectedDays == 0) {
-                    Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.error_no_days), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.error_no_days), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
 
-                Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.label_sound_profile), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.label_sound_profile), style = MaterialTheme.typography.labelLarge)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SoundProfile.values().forEach { profile ->
                         FilterChip(
@@ -365,7 +422,7 @@ fun ScheduleEditorDialog(
                     }
                 }
 
-                Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.label_condition), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.label_condition), style = MaterialTheme.typography.labelLarge)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AutomationRuleCondition.values().toList().forEach { cond ->
                         FilterChip(
@@ -420,7 +477,7 @@ fun ScheduleEditorDialog(
                         )
                     }
 
-                    com.cryptxploit.classmode.presentation.components.LocationPicker(
+                    LocationPicker(
                         currentLat = lat.toDoubleOrNull(),
                         currentLng = lon.toDoubleOrNull(),
                         onLocationSelected = { newLat, newLng ->
@@ -434,7 +491,7 @@ fun ScheduleEditorDialog(
                 
                 validationErrorRes?.let { errRes ->
                     Text(
-                        text = androidx.compose.ui.res.stringResource(errRes),
+                        text = stringResource(errRes),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
@@ -453,7 +510,7 @@ fun ScheduleEditorDialog(
                             onDismiss() 
                         }
                     ) { 
-                        Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.action_cancel)) 
+                        Text(stringResource(R.string.action_cancel)) 
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -466,13 +523,13 @@ fun ScheduleEditorDialog(
                             val isLocationValid = condition == AutomationRuleCondition.TIME_ONLY || (lat.isNotBlank() && lon.isNotBlank() && lat.toDoubleOrNull() != null && lon.toDoubleOrNull() != null)
                             
                             if (!isDaysValid) {
-                                validationErrorRes = com.cryptxploit.classmode.R.string.error_no_days
+                                validationErrorRes = R.string.error_no_days
                             } else if (!isTimeValid) {
-                                validationErrorRes = com.cryptxploit.classmode.R.string.error_time_same
+                                validationErrorRes = R.string.error_time_same
                             } else if (!isTitleValid) {
-                                validationErrorRes = com.cryptxploit.classmode.R.string.label_class_title
+                                validationErrorRes = R.string.label_class_title
                             } else if (!isLocationValid) {
-                                validationErrorRes = com.cryptxploit.classmode.R.string.error_location_invalid
+                                validationErrorRes = R.string.error_location_invalid
                             } else {
                                 validationErrorRes = null
                                 val entity = ScheduleEntity(
@@ -490,7 +547,7 @@ fun ScheduleEditorDialog(
                             }
                         }
                     ) {
-                        Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.action_save))
+                        Text(stringResource(R.string.action_save))
                     }
                 }
             }
@@ -524,8 +581,8 @@ fun TimePickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onConfirm) { Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.action_ok)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.action_cancel)) } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.action_ok)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
         text = { content() }
     )
 }

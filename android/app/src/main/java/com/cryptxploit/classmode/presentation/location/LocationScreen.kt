@@ -1,15 +1,19 @@
-package com.cryptxploit.classmode.presentation.location
+﻿package com.cryptxploit.classmode.presentation.location
 
 import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Build
+import android.preference.PreferenceManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -22,19 +26,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
-import com.cryptxploit.classmode.presentation.components.DestructiveConfirmationDialog
-import com.cryptxploit.classmode.presentation.components.EmptyStateView
-import com.cryptxploit.classmode.presentation.theme.LocalHaptic
-import com.cryptxploit.classmode.R
-
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import android.preference.PreferenceManager
+import com.cryptxploit.classmode.R
 import com.cryptxploit.classmode.data.local.entity.GeofenceEntity
-import androidx.compose.foundation.clickable
+import com.cryptxploit.classmode.presentation.components.ClassModeCard
+import com.cryptxploit.classmode.presentation.components.DestructiveConfirmationDialog
+import com.cryptxploit.classmode.presentation.components.EmptyStateView
+import com.cryptxploit.classmode.presentation.components.LocationPicker
+import com.cryptxploit.classmode.presentation.theme.ClassModeTheme
+import com.cryptxploit.classmode.presentation.theme.LocalHaptic
+import com.cryptxploit.classmode.presentation.theme.pressClickEffect
 import com.google.android.gms.location.LocationServices
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
@@ -93,28 +99,50 @@ fun LocationScreen(
 
     if (isAddingNew) {
         FullScreenMapSelector(
-            onDismiss = { isAddingNew = false },
+            onDismiss = { 
+                haptic.performClickEffect()
+                isAddingNew = false 
+            },
             onSave = { lat, lon, rad ->
+                haptic.performClickEffect()
                 onAddGeofence(lat, lon, rad)
                 isAddingNew = false
             }
         )
     } else {
         Scaffold(
-            topBar = { TopAppBar(title = { Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.title_locations)) }) },
+            topBar = { 
+                TopAppBar(
+                    title = { Text(stringResource(R.string.title_locations), fontWeight = FontWeight.Bold) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) 
+            },
             floatingActionButton = {
-                FloatingActionButton(onClick = { 
-                    if (!hasFineLocation) {
-                        locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-                    } else if (!hasBackgroundLocation && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                    } else {
-                        isAddingNew = true 
-                    }
-                }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Location")
+                val fabInteractionSource = remember { MutableInteractionSource() }
+                FloatingActionButton(
+                    onClick = { 
+                        haptic.performClickEffect()
+                        if (!hasFineLocation) {
+                            locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                        } else if (!hasBackgroundLocation && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                        } else {
+                            isAddingNew = true 
+                        }
+                    },
+                    interactionSource = fabInteractionSource,
+                    modifier = Modifier.pressClickEffect(fabInteractionSource),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.title_locations))
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.background
         ) { paddingValues ->
             Column(
                 modifier = Modifier
@@ -122,15 +150,23 @@ fun LocationScreen(
                     .padding(paddingValues)
             ) {
                 if (!hasFineLocation || !hasBackgroundLocation) {
-                    Card(
+                    ClassModeCard(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
                     ) {
-                        Text(
-                            text = if (!hasFineLocation) "Location permission is required." else "Background location ('Allow all the time') is required for automatic geofencing. Please tap the + button.",
+                        Row(
                             modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Place, contentDescription = "Warning", tint = MaterialTheme.colorScheme.error)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = if (!hasFineLocation) "Location permission is required." else "Background location ('Allow all the time') is required for automatic geofencing. Please tap the + button to request it.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
                     }
                 }
 
@@ -143,26 +179,68 @@ fun LocationScreen(
                     )
                 } else {
                     LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(geofences) { geofence ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { haptic.performClickEffect() }
+                        items(geofences, key = { it.id }) { geofence ->
+                            ClassModeCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                containerColor = ClassModeTheme.semanticColors.surfaceElevated
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Column {
-                                        Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.label_classroom_rule, geofence.ruleId), style = MaterialTheme.typography.titleMedium)
-                                        Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.label_radius, geofence.radiusMeters.toInt()), style = MaterialTheme.typography.bodyMedium)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .clip(CircleShape)
+                                                .background(ClassModeTheme.semanticColors.statusActive.copy(alpha = 0.15f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Place, 
+                                                contentDescription = null,
+                                                tint = ClassModeTheme.semanticColors.statusActive
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Column {
+                                            Text(
+                                                text = stringResource(R.string.label_classroom_rule, geofence.ruleId), 
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = stringResource(R.string.label_radius, geofence.radiusMeters.toInt()), 
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
-                                    IconButton(onClick = { geofenceToDelete = geofence }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                                    
+                                    val deleteInteractionSource = remember { MutableInteractionSource() }
+                                    IconButton(
+                                        onClick = { 
+                                            haptic.performClickEffect()
+                                            geofenceToDelete = geofence 
+                                        },
+                                        interactionSource = deleteInteractionSource,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .pressClickEffect(deleteInteractionSource)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete, 
+                                            contentDescription = stringResource(R.string.action_delete), 
+                                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                                        )
                                     }
                                 }
                             }
@@ -201,7 +279,6 @@ fun FullScreenMapSelector(
         Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
         Configuration.getInstance().userAgentValue = context.packageName
         
-        // Try to get current location
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
         try {
             fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
@@ -213,9 +290,7 @@ fun FullScreenMapSelector(
                     mapView?.controller?.setZoom(17.0)
                 }
             }
-        } catch (e: SecurityException) {
-            // Permission missing
-        }
+        } catch (e: SecurityException) {}
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -226,7 +301,6 @@ fun FullScreenMapSelector(
                     setMultiTouchControls(true)
                     controller.setZoom(15.0)
                     
-                    // Fallback to Dhaka if location fails
                     if (!initialLocationFound) {
                         controller.setCenter(GeoPoint(23.8103, 90.4125))
                     }
@@ -243,14 +317,12 @@ fun FullScreenMapSelector(
                 }
             },
             update = { view ->
-                // Remove dynamic overlays only
                 view.overlays.removeAll { it is Polygon || it is Marker }
 
-                // Add Marker and Circle
                 selectedLocation?.let { point ->
                     val circle = Polygon(view)
                     circle.points = Polygon.pointsAsCircle(point, radiusMeters.toDouble())
-                    circle.fillColor = 0x330000FF // Translucent blue
+                    circle.fillColor = 0x330000FF
                     circle.strokeColor = 0xFF0000FF.toInt()
                     circle.strokeWidth = 2f
                     view.overlays.add(circle)
@@ -270,15 +342,22 @@ fun FullScreenMapSelector(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SmallFloatingActionButton(onClick = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
-                Icon(Icons.Default.ArrowBack, "Back")
+            val backInteractionSource = remember { MutableInteractionSource() }
+            SmallFloatingActionButton(
+                onClick = onDismiss, 
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                interactionSource = backInteractionSource,
+                modifier = Modifier.pressClickEffect(backInteractionSource)
+            ) {
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.action_cancel))
             }
             
-            Box(modifier = Modifier.weight(1f).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))) {
-                com.cryptxploit.classmode.presentation.components.LocationPicker(
+            Box(modifier = Modifier.weight(1f).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))) {
+                LocationPicker(
                     currentLat = selectedLocation?.latitude,
                     currentLng = selectedLocation?.longitude,
                     onLocationSelected = { newLat, newLng ->
@@ -292,17 +371,21 @@ fun FullScreenMapSelector(
         }
 
         // Bottom control sheet
-        Card(
+        ClassModeCard(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(8.dp)
+            containerColor = MaterialTheme.colorScheme.surface,
+            elevation = 8.dp
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.title_select_radius), style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = stringResource(R.string.title_select_radius), 
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -312,27 +395,34 @@ fun FullScreenMapSelector(
                         FilterChip(
                             selected = radiusMeters == value,
                             onClick = { radiusMeters = value },
-                            label = { Text(label) }
+                            label = { Text(label, fontWeight = FontWeight.Medium) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+                val saveInteractionSource = remember { MutableInteractionSource() }
                 Button(
                     onClick = {
                         selectedLocation?.let {
                             onSave(it.latitude, it.longitude, radiusMeters)
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = selectedLocation != null
+                    modifier = Modifier.fillMaxWidth().height(56.dp).pressClickEffect(saveInteractionSource),
+                    enabled = selectedLocation != null,
+                    interactionSource = saveInteractionSource,
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(if (selectedLocation != null) androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.action_set_location) else androidx.compose.ui.res.stringResource(com.cryptxploit.classmode.R.string.msg_tap_map))
+                    Text(
+                        text = if (selectedLocation != null) stringResource(R.string.action_set_location) else stringResource(R.string.msg_tap_map),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
     }
 }
-
-
-
-
