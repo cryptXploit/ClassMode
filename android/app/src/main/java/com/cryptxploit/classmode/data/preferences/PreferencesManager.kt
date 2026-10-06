@@ -25,6 +25,7 @@ class PreferencesManager(private val context: Context) {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val LANGUAGE = stringPreferencesKey("language")
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
+        val LAST_RESOLVED_PROFILE = stringPreferencesKey("last_resolved_profile")
     }
 
     val isDiagnosticsOptInFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->

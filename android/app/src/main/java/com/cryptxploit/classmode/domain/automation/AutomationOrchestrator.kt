@@ -5,12 +5,14 @@ import com.cryptxploit.classmode.data.local.entity.AutomationEventEntity
 import com.cryptxploit.classmode.data.system.SystemAudioController
 import com.cryptxploit.classmode.data.system.SystemNotificationManager
 import com.cryptxploit.classmode.data.system.SystemHapticController
+import com.cryptxploit.classmode.data.preferences.PreferencesManager
 import com.cryptxploit.classmode.domain.model.CapabilityResult
 import com.cryptxploit.classmode.domain.model.SoundProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.content.Context
@@ -22,77 +24,47 @@ class AutomationOrchestrator(
     private val ruleResolver: IRuleResolver,
     private val audioController: SystemAudioController,
     private val eventDao: AutomationEventDao,
-    private val restoreStateManager: RestoreStateManager,
     private val notificationManager: SystemNotificationManager,
-    private val hapticController: SystemHapticController
+    private val hapticController: SystemHapticController,
+    private val preferencesManager: PreferencesManager
 ) {
-    private var lastActiveSessionId: String? = null
-    private var isManualOverrideActive: Boolean = false
-    private var lastDefaultPreference: SoundProfile? = null
-
     fun start(scope: CoroutineScope) {
         contextEngine.observeContext()
             .onEach { snapshot ->
                 val targetProfile = ruleResolver.resolve(snapshot)
                 val activeSession = snapshot.activeSessions.firstOrNull()
-                val currentSessionId = activeSession?.id
                 val hasUserOverride = snapshot.userOverride != null
-                
-                val defaultPreferenceChanged = lastDefaultPreference != null && lastDefaultPreference != snapshot.defaultPreference
-                lastDefaultPreference = snapshot.defaultPreference
-                
-                if (hasUserOverride) {
-                    val currentPhysicalProfile = audioController.getCurrentProfile()
-                    if (currentPhysicalProfile != targetProfile) {
-                        audioController.applyProfile(targetProfile)
-                        hapticController.performAutomationTransitionEffect()
-                    }
-                    isManualOverrideActive = true
-                    return@onEach
-                }
-                
-                if (isManualOverrideActive && !hasUserOverride) {
-                    isManualOverrideActive = false
+
+                // Update notification status
+                if (activeSession != null && !hasUserOverride) {
+                    val title = context.getString(R.string.status_automation_active)
+                    val message = "Profile set to $targetProfile"
+                    notificationManager.showAutomationStatus(title, message)
+                } else {
+                    notificationManager.cancelAutomationStatus()
                 }
 
-                if (currentSessionId != null) {
-                    if (currentSessionId != lastActiveSessionId) {
-                        // New session started or transitioned
-                        restoreStateManager.captureAndApply(currentSessionId, targetProfile)
-                        logEvent(activeSession.id.toLongOrNull() ?: 0L, targetProfile, CapabilityResult.APPLIED)
-                        lastActiveSessionId = currentSessionId
-                        
-                        // Show notification
-                        val title = context.getString(R.string.status_automation_active)
-                        val message = "Profile set to $targetProfile"
-                        notificationManager.showAutomationStatus(title, message)
-                        hapticController.performAutomationTransitionEffect()
-                    } else {
-                        // Ongoing session
-                        val currentPhysicalProfile = audioController.getCurrentProfile()
-                        if (currentPhysicalProfile != targetProfile && currentPhysicalProfile == SoundProfile.NORMAL) {
-                            // User manually changed physical volume button - respect it
-                        }
-                    }
-                } else {
-                    // No active session
-                    if (lastActiveSessionId != null) {
-                        // Session ended
-                        restoreStateManager.evaluateAndRestore(lastActiveSessionId!!)
-                        logEvent(0L, SoundProfile.NORMAL, CapabilityResult.RESTORED)
-                        lastActiveSessionId = null
-                        
-                        // Cancel automation notification
-                        notificationManager.cancelAutomationStatus()
-                        hapticController.performAutomationTransitionEffect()
-                    } else if (defaultPreferenceChanged) {
-                        // Dynamically propagate default profile change if no class is running
-                        val currentPhysicalProfile = audioController.getCurrentProfile()
-                        if (currentPhysicalProfile != targetProfile) {
-                            audioController.applyProfile(targetProfile)
+                val lastResolvedProfile = preferencesManager.lastResolvedProfileFlow.firstOrNull()
+                
+                // If the context dictates a change in the intended profile
+                if (targetProfile != lastResolvedProfile) {
+                    val currentPhysicalProfile = audioController.getCurrentProfile()
+                    
+                    // Apply only if the physical state differs from the new target
+                    if (currentPhysicalProfile != targetProfile) {
+                        val success = audioController.applyProfile(targetProfile)
+                        if (success) {
                             hapticController.performAutomationTransitionEffect()
+                            val ruleId = activeSession?.id?.toLongOrNull() ?: 0L
+                            logEvent(ruleId, targetProfile, CapabilityResult.APPLIED)
+                        } else {
+                            val ruleId = activeSession?.id?.toLongOrNull() ?: 0L
+                            logEvent(ruleId, targetProfile, CapabilityResult.DENIED)
                         }
                     }
+                    
+                    // Always record that we resolved this target, so we don't spam it
+                    preferencesManager.setLastResolvedProfile(targetProfile)
                 }
             }
             .launchIn(scope)
@@ -108,7 +80,3 @@ class AutomationOrchestrator(
         eventDao.insertEvent(event)
     }
 }
-
-
-
-

@@ -70,7 +70,7 @@ class ClassModeApplication : Application() {
             ruleResolver = ruleResolver,
             audioController = systemAudioController,
             eventDao = database.automationEventDao(),
-            restoreStateManager = restoreStateManager,
+            preferencesManager = preferencesManager,
             notificationManager = systemNotificationManager,
             hapticController = systemHapticController
         )
