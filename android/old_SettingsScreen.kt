@@ -1,4 +1,4 @@
-package com.cryptxploit.classmode.presentation.settings
+﻿package com.cryptxploit.classmode.presentation.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -62,7 +62,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 4.dp, bottom = 0.dp)
+                modifier = Modifier.padding(start = 4.dp, bottom = -8.dp)
             )
             
             // Automation Master Switch
@@ -204,7 +204,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 0.dp)
+                modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = -8.dp)
             )
             
             // Default Profile
