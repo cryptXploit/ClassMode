@@ -71,7 +71,7 @@ class AutomationOrchestrator(
             .launchIn(scope)
     }
 
-    private suspend fun logEvent(ruleId: Long, profile: SoundProfile, result: CapabilityResult) = withContext(Dispatchers.IO) {
+    private suspend fun logEvent(ruleId: Long, profile: SoundProfile, result: CapabilityResult) {
         val event = AutomationEventEntity(
             ruleId = ruleId,
             timestamp = System.currentTimeMillis(),
