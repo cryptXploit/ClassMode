@@ -31,12 +31,13 @@ class AutomationOrchestrator(
     fun start(scope: CoroutineScope) {
         contextEngine.observeContext()
             .onEach { snapshot ->
-                val targetProfile = ruleResolver.resolve(snapshot)
-                val activeSession = snapshot.activeSessions.firstOrNull()
+                val resolution = ruleResolver.resolve(snapshot)
+                val targetProfile = resolution.profile
+                val ruleIdStr = resolution.ruleId
                 val hasUserOverride = snapshot.userOverride != null
 
                 // Update notification status
-                if (activeSession != null && !hasUserOverride) {
+                if (resolution.source == com.cryptxploit.classmode.domain.model.ResolutionSource.ACTIVE_RULE) {
                     val title = context.getString(R.string.status_automation_active)
                     val message = "Profile set to $targetProfile"
                     notificationManager.showAutomationStatus(title, message)
@@ -55,10 +56,10 @@ class AutomationOrchestrator(
                         val success = audioController.applyProfile(targetProfile)
                         if (success) {
                             hapticController.performAutomationTransitionEffect()
-                            val ruleId = activeSession?.id?.toLongOrNull() ?: 0L
+                            val ruleId = ruleIdStr?.toLongOrNull() ?: 0L
                             logEvent(ruleId, targetProfile, CapabilityResult.APPLIED)
                         } else {
-                            val ruleId = activeSession?.id?.toLongOrNull() ?: 0L
+                            val ruleId = ruleIdStr?.toLongOrNull() ?: 0L
                             logEvent(ruleId, targetProfile, CapabilityResult.DENIED)
                         }
                     }

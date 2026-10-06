@@ -25,7 +25,7 @@ class AutomationAcceptanceTest {
             activeSessions = emptyList(),
             defaultPreference = SoundProfile.NORMAL
         )
-        assertEquals(SoundProfile.NORMAL, resolver.resolve(snapshot))
+        assertEquals(SoundProfile.NORMAL, resolver.resolve(snapshot).profile)
     }
 
     // CASE 2: No schedule + default VIBRATE -> VIBRATE
@@ -35,7 +35,7 @@ class AutomationAcceptanceTest {
             activeSessions = emptyList(),
             defaultPreference = SoundProfile.VIBRATE
         )
-        assertEquals(SoundProfile.VIBRATE, resolver.resolve(snapshot))
+        assertEquals(SoundProfile.VIBRATE, resolver.resolve(snapshot).profile)
     }
 
     // CASE 3: Manual override Silent -> SILENT regardless of default
@@ -46,7 +46,7 @@ class AutomationAcceptanceTest {
             defaultPreference = SoundProfile.NORMAL,
             userOverride = SoundProfile.SILENT
         )
-        assertEquals(SoundProfile.SILENT, resolver.resolve(snapshot))
+        assertEquals(SoundProfile.SILENT, resolver.resolve(snapshot).profile)
     }
 
     // CASE 4: Manual override ends while no rule is active -> DEFAULT
@@ -58,7 +58,7 @@ class AutomationAcceptanceTest {
             defaultPreference = SoundProfile.NORMAL,
             userOverride = null
         )
-        assertEquals(SoundProfile.NORMAL, resolver.resolve(snapshot))
+        assertEquals(SoundProfile.NORMAL, resolver.resolve(snapshot).profile)
     }
 
     // CASE 5: Manual override ends while class rule is active -> CLASS RULE PROFILE
@@ -69,7 +69,7 @@ class AutomationAcceptanceTest {
             defaultPreference = SoundProfile.NORMAL,
             userOverride = null
         )
-        assertEquals(SoundProfile.VIBRATE, resolver.resolve(snapshot))
+        assertEquals(SoundProfile.VIBRATE, resolver.resolve(snapshot).profile)
     }
 
     // CASE 6: Time schedule start -> SELECTED PROFILE
@@ -79,7 +79,7 @@ class AutomationAcceptanceTest {
             activeSessions = listOf(ActiveSession("1", SessionType.CLASS, false, SoundProfile.SILENT)),
             defaultPreference = SoundProfile.NORMAL
         )
-        assertEquals(SoundProfile.SILENT, resolver.resolve(snapshot))
+        assertEquals(SoundProfile.SILENT, resolver.resolve(snapshot).profile)
     }
 
     // CASE 7: Time schedule end -> DEFAULT or next active rule
@@ -105,7 +105,7 @@ class AutomationAcceptanceTest {
             activeSessions = listOf(ActiveSession("1", SessionType.CLASS, false, SoundProfile.DND)),
             defaultPreference = SoundProfile.NORMAL
         )
-        assertEquals(SoundProfile.DND, resolver.resolve(snapshot))
+        assertEquals(SoundProfile.DND, resolver.resolve(snapshot).profile)
     }
 
     // CASE 19: User-selected Silent schedule -> MUST resolve Silent, not hardcoded Vibrate
@@ -115,7 +115,7 @@ class AutomationAcceptanceTest {
             activeSessions = listOf(ActiveSession("1", SessionType.CLASS, false, SoundProfile.SILENT)),
             defaultPreference = SoundProfile.NORMAL
         )
-        assertEquals(SoundProfile.SILENT, resolver.resolve(snapshot))
+        assertEquals(SoundProfile.SILENT, resolver.resolve(snapshot).profile)
     }
 
     // CASE 20: User-selected Normal schedule -> MUST actively resolve Normal
@@ -125,7 +125,7 @@ class AutomationAcceptanceTest {
             activeSessions = listOf(ActiveSession("1", SessionType.CLASS, false, SoundProfile.NORMAL)),
             defaultPreference = SoundProfile.VIBRATE
         )
-        assertEquals(SoundProfile.NORMAL, resolver.resolve(snapshot))
+        assertEquals(SoundProfile.NORMAL, resolver.resolve(snapshot).profile)
     }
 
     // CASE 23: Multiple active rules -> deterministic documented precedence
@@ -139,6 +139,6 @@ class AutomationAcceptanceTest {
             ),
             defaultPreference = SoundProfile.NORMAL
         )
-        assertEquals(SoundProfile.DND, resolver.resolve(snapshot))
+        assertEquals(SoundProfile.DND, resolver.resolve(snapshot).profile)
     }
 }

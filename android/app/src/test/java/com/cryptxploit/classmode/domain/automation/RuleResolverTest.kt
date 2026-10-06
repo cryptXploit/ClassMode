@@ -17,7 +17,7 @@ class RuleResolverTest {
             activeSessions = listOf(ActiveSession("1", SessionType.EXAM, false, SoundProfile.SILENT)),
             userOverride = SoundProfile.NORMAL
         )
-        val result = resolver.resolve(snapshot)
+        val result = resolver.resolve(snapshot).profile
         assertEquals(SoundProfile.NORMAL, result)
     }
 
@@ -29,7 +29,7 @@ class RuleResolverTest {
                 ActiveSession("2", SessionType.EXAM, false, SoundProfile.SILENT)
             )
         )
-        val result = resolver.resolve(snapshot)
+        val result = resolver.resolve(snapshot).profile
         assertEquals(SoundProfile.SILENT, result)
     }
 
@@ -39,7 +39,7 @@ class RuleResolverTest {
             activeSessions = emptyList(),
             defaultPreference = SoundProfile.NORMAL
         )
-        val result = resolver.resolve(snapshot)
+        val result = resolver.resolve(snapshot).profile
         assertEquals(SoundProfile.NORMAL, result)
     }
 }
