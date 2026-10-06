@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -82,7 +83,8 @@ class DashboardViewModelTest {
 
     @Test
     fun `effectiveResolution exposes exact domain engine state`() = runTest {
-        val job = launch { viewModel.effectiveResolution.collect {} }`n        advanceUntilIdle()
+        val job = launch { viewModel.effectiveResolution.collect {} }
+        advanceUntilIdle()
         val resolution = viewModel.effectiveResolution.value
         assertEquals(SoundProfile.SILENT, resolution.profile)
         assertEquals(ResolutionSource.ACTIVE_RULE, resolution.source)

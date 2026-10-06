@@ -92,7 +92,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = if (contextSnapshot?.isLocationUnavailable == true) 
-                                "Location condition could not be verified. Please enable location services." 
+                                "Location condition could not be verified. Please select 'Allow all the time' in Android Settings to enable background location automations." 
                                 else (healthStatus.lastError ?: "System issue"),
                             style = MaterialTheme.typography.bodyMedium
                         )

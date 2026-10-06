@@ -86,7 +86,8 @@ class GeofenceManager(private val context: Context) {
 
     fun hasLocationPermission(): Boolean {
         val fineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        val backgroundLocation = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+        val sdkInt = try { System.getProperty("classmode.test.sdk_int")?.toInt() ?: android.os.Build.VERSION.SDK_INT } catch(e: Exception) { android.os.Build.VERSION.SDK_INT }
+        val backgroundLocation = if (sdkInt >= android.os.Build.VERSION_CODES.Q) {
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
         } else true
         return fineLocation && backgroundLocation
