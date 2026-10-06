@@ -3,6 +3,7 @@ package com.cryptxploit.classmode.data.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.PowerManager
 import android.util.Log
 import com.cryptxploit.classmode.ClassModeApplication
 import com.cryptxploit.classmode.data.system.SystemAlarmScheduler
@@ -28,6 +29,12 @@ class SystemEventReceiver : BroadcastReceiver() {
             val app = context.applicationContext as ClassModeApplication
             val scheduleDao = app.database.scheduleDao()
             val alarmScheduler = SystemAlarmScheduler(context, app.healthMonitor)
+            
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            val wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ClassMode:SystemEventReceiverWakeLock")
+            wakeLock.acquire(15000L) // 15 seconds for boot rebuilding
+            
+            val pendingResult = goAsync()
             
             CoroutineScope(Dispatchers.IO).launch {
                 try {
@@ -63,10 +70,17 @@ class SystemEventReceiver : BroadcastReceiver() {
                     Log.i("SystemEventReceiver", "Successfully processed alarms for ${schedules.size} schedules.")
                 } catch (e: Exception) {
                     Log.e("SystemEventReceiver", "Failed to rebuild alarms", e)
+                } finally {
+                    pendingResult.finish()
+                    try {
+                        if (wakeLock.isHeld) {
+                            wakeLock.release()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("SystemEventReceiver", "Error releasing WakeLock", e)
+                    }
                 }
             }
         }
     }
 }
-
-

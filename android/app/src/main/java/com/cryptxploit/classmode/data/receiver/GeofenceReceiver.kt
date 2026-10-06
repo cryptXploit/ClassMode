@@ -3,6 +3,7 @@ package com.cryptxploit.classmode.data.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.PowerManager
 import android.util.Log
 import com.cryptxploit.classmode.ClassModeApplication
 import com.cryptxploit.classmode.data.local.entity.TriggerStateEntity
@@ -34,24 +35,41 @@ class GeofenceReceiver : BroadcastReceiver() {
             val app = context.applicationContext as ClassModeApplication
             val triggerStateDao = app.database.triggerStateDao()
             
-            for (geofence in triggeringGeofences) {
-                val ruleIdStr = geofence.requestId
-                val ruleId = ruleIdStr.toLongOrNull() ?: continue
-                
-                
-                val isLocationActive = geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER || geofenceTransition == Geofence.GEOFENCE_TRANSITION_DWELL
-                
-                CoroutineScope(Dispatchers.IO).launch {
+            // Acquire a WakeLock to ensure the device doesn't sleep before orchestration completes
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            val wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ClassMode:GeofenceReceiverWakeLock")
+            wakeLock.acquire(10000L) // 10 seconds to allow coroutines and orchestrator to finish
+            
+            val pendingResult = goAsync()
+            
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    for (geofence in triggeringGeofences) {
+                        val ruleIdStr = geofence.requestId
+                        val ruleId = ruleIdStr.toLongOrNull() ?: continue
+                        
+                        val isLocationActive = geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER || geofenceTransition == Geofence.GEOFENCE_TRANSITION_DWELL
+                        
+                        try {
+                            var state = triggerStateDao.getState(ruleId)
+                            if (state == null) {
+                                state = TriggerStateEntity(ruleId = ruleId, isLocationActive = isLocationActive, lastUpdated = System.currentTimeMillis())
+                                triggerStateDao.insertOrUpdate(state)
+                            } else {
+                                triggerStateDao.updateLocationState(ruleId, isLocationActive, System.currentTimeMillis())
+                            }
+                        } catch (e: Exception) {
+                            Log.e("GeofenceReceiver", "Failed to update location state for $ruleId", e)
+                        }
+                    }
+                } finally {
+                    pendingResult.finish()
                     try {
-                        var state = triggerStateDao.getState(ruleId)
-                        if (state == null) {
-                            state = TriggerStateEntity(ruleId = ruleId, isLocationActive = isLocationActive, lastUpdated = System.currentTimeMillis())
-                            triggerStateDao.insertOrUpdate(state)
-                        } else {
-                            triggerStateDao.updateLocationState(ruleId, isLocationActive, System.currentTimeMillis())
+                        if (wakeLock.isHeld) {
+                            wakeLock.release()
                         }
                     } catch (e: Exception) {
-                        Log.e("GeofenceReceiver", "Failed to update location state for $ruleId", e)
+                        Log.e("GeofenceReceiver", "Error releasing WakeLock", e)
                     }
                 }
             }
@@ -60,6 +78,3 @@ class GeofenceReceiver : BroadcastReceiver() {
         }
     }
 }
-
-
-
