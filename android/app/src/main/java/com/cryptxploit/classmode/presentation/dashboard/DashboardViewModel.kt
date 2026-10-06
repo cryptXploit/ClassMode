@@ -28,7 +28,7 @@ class DashboardViewModel(
 
     // Emits the intelligently resolved sound profile based on context
     val effectiveProfile: StateFlow<SoundProfile> = contextEngine.observeContext()
-        .map { snapshot -> ruleResolver.resolve(snapshot) }
+        .map { snapshot -> ruleResolver.resolve(snapshot).profile }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
