@@ -37,7 +37,7 @@ class PreferencesManager(private val context: Context) {
         SoundProfile.valueOf(profileName)
     }
 
-        val userOverrideFlow: Flow<SoundProfile?> = context.dataStore.data.map { preferences ->
+    val userOverrideFlow: Flow<SoundProfile?> = context.dataStore.data.map { preferences ->
         val overrideName = preferences[USER_OVERRIDE]
         if (overrideName != null) SoundProfile.valueOf(overrideName) else null
     }
@@ -60,6 +60,11 @@ class PreferencesManager(private val context: Context) {
 
     val isHapticsEnabledFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[HAPTICS_ENABLED] ?: true
+    }
+
+    val lastResolvedProfileFlow: Flow<SoundProfile?> = context.dataStore.data.map { preferences ->
+        val profileName = preferences[LAST_RESOLVED_PROFILE]
+        if (profileName != null) SoundProfile.valueOf(profileName) else null
     }
 
     suspend fun setDefaultProfile(profile: SoundProfile) {
@@ -98,11 +103,21 @@ class PreferencesManager(private val context: Context) {
         }
     }
 
+    suspend fun setLastResolvedProfile(profile: SoundProfile?) {
+        context.dataStore.edit { preferences ->
+            if (profile != null) {
+                preferences[LAST_RESOLVED_PROFILE] = profile.name
+            } else {
+                preferences.remove(LAST_RESOLVED_PROFILE)
+            }
+        }
+    }
+
     suspend fun clearAllData() {
         context.dataStore.edit { it.clear() }
     }
 
-        suspend fun setUserOverride(profile: SoundProfile?, expiryTime: Long = 0L) {
+    suspend fun setUserOverride(profile: SoundProfile?, expiryTime: Long = 0L) {
         context.dataStore.edit { preferences ->
             if (profile != null) {
                 preferences[USER_OVERRIDE] = profile.name
@@ -114,5 +129,3 @@ class PreferencesManager(private val context: Context) {
         }
     }
 }
-
-
