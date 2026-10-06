@@ -28,18 +28,23 @@ class ContextEngine(
             triggerStateDao.observeAllStates()
         ) { defaultProfile, overrideProfile, enabledSchedules, triggerStates ->
             
+            val currentTime = System.currentTimeMillis()
             val stateMap = triggerStates.associateBy { it.ruleId }
             val hasLocation = geofenceManager.hasLocationPermission()
             
             val activeSessions = enabledSchedules.mapNotNull { schedule ->
-                val state = stateMap[schedule.id] ?: return@mapNotNull null
-                val isLocationActive = if (hasLocation) state.isLocationActive else false
+                // Do not short-circuit just because TriggerStateEntity doesn't exist yet.
+                // TriggerStateEntity only acts as a caching mechanism for location and an event trigger.
+                val state = stateMap[schedule.id]
+                
+                val isLocationActive = if (hasLocation) state?.isLocationActive == true else false
+                val isTimeActive = ScheduleCalculator.isCurrentlyActive(schedule, currentTime)
                 
                 val isEffectivelyActive = when (schedule.condition) {
-                    AutomationRuleCondition.TIME_ONLY -> ScheduleCalculator.isCurrentlyActive(schedule)
+                    AutomationRuleCondition.TIME_ONLY -> isTimeActive
                     AutomationRuleCondition.LOCATION_ONLY -> isLocationActive
-                    AutomationRuleCondition.TIME_AND_LOCATION -> ScheduleCalculator.isCurrentlyActive(schedule) && isLocationActive
-                    AutomationRuleCondition.TIME_OR_LOCATION -> ScheduleCalculator.isCurrentlyActive(schedule) || isLocationActive
+                    AutomationRuleCondition.TIME_AND_LOCATION -> isTimeActive && isLocationActive
+                    AutomationRuleCondition.TIME_OR_LOCATION -> isTimeActive || isLocationActive
                 }
                 
                 if (isEffectivelyActive) {
@@ -72,4 +77,3 @@ class ContextEngine(
         }
     }
 }
-
