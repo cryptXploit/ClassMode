@@ -20,7 +20,7 @@ class ScheduleCalculatorTest {
     ): ScheduleEntity {
         return ScheduleEntity(
             id = 1L,
-            name = "Test Schedule",
+            title = "Test Schedule",
             isEnabled = isEnabled,
             startTimeMins = startTimeMins,
             endTimeMins = endTimeMins,
