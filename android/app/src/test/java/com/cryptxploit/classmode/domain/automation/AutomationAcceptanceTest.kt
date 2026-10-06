@@ -89,13 +89,13 @@ class AutomationAcceptanceTest {
             activeSessions = emptyList(),
             defaultPreference = SoundProfile.NORMAL
         )
-        assertEquals(SoundProfile.NORMAL, resolver.resolve(snapshotNoRules))
+        assertEquals(SoundProfile.NORMAL, resolver.resolve(snapshotNoRules).profile)
         
         val snapshotNextRule = ContextSnapshot(
             activeSessions = listOf(ActiveSession("2", SessionType.CAMPUS, false, SoundProfile.VIBRATE)),
             defaultPreference = SoundProfile.NORMAL
         )
-        assertEquals(SoundProfile.VIBRATE, resolver.resolve(snapshotNextRule))
+        assertEquals(SoundProfile.VIBRATE, resolver.resolve(snapshotNextRule).profile)
     }
 
     // CASE 14: Time + Location both TRUE -> selected profile
