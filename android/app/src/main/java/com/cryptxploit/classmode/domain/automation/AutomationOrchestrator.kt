@@ -34,7 +34,7 @@ class AutomationOrchestrator(
                 val resolution = ruleResolver.resolve(snapshot)
                 val targetProfile = resolution.profile
                 val ruleIdStr = resolution.ruleId
-                val hasUserOverride = snapshot.userOverride != null
+                
 
                 // Update notification status
                 if (resolution.source == com.cryptxploit.classmode.domain.model.ResolutionSource.ACTIVE_RULE) {
