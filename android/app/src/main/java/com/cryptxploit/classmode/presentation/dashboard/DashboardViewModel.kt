@@ -6,7 +6,9 @@ import com.cryptxploit.classmode.domain.automation.AutomationHealthMonitor
 import com.cryptxploit.classmode.domain.automation.ContextEngine
 import com.cryptxploit.classmode.domain.automation.RuleResolver
 import com.cryptxploit.classmode.domain.model.ContextSnapshot
+import com.cryptxploit.classmode.domain.model.EffectiveResolution
 import com.cryptxploit.classmode.domain.model.HealthStatus
+import com.cryptxploit.classmode.domain.model.ResolutionSource
 import com.cryptxploit.classmode.domain.model.SoundProfile
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +16,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.cryptxploit.classmode.data.system.SystemHapticController
-
 import com.cryptxploit.classmode.data.system.SystemAlarmScheduler
 
 class DashboardViewModel(
@@ -26,13 +27,18 @@ class DashboardViewModel(
     private val hapticController: SystemHapticController
 ) : ViewModel() {
 
-    // Emits the intelligently resolved sound profile based on context
-    val effectiveProfile: StateFlow<SoundProfile> = contextEngine.observeContext()
-        .map { snapshot -> ruleResolver.resolve(snapshot).profile }
+    // Emits the intelligently resolved context decision
+    val effectiveResolution: StateFlow<EffectiveResolution> = contextEngine.observeContext()
+        .map { snapshot -> ruleResolver.resolve(snapshot) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = SoundProfile.NORMAL
+            initialValue = EffectiveResolution(
+                profile = SoundProfile.NORMAL,
+                source = ResolutionSource.DEFAULT_PREFERENCE,
+                ruleId = null,
+                reason = "Initializing"
+            )
         )
 
     val contextSnapshot: StateFlow<ContextSnapshot?> = contextEngine.observeContext()
@@ -70,7 +76,3 @@ class DashboardViewModel(
         }
     }
 }
-
-
-
-

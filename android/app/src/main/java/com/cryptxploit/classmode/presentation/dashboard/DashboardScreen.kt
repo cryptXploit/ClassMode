@@ -42,7 +42,9 @@ import com.cryptxploit.classmode.presentation.theme.pressClickEffect
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel) {
-    val effectiveProfile by viewModel.effectiveProfile.collectAsStateWithLifecycle()
+    val effectiveResolution by viewModel.effectiveResolution.collectAsStateWithLifecycle()
+    val effectiveProfile = effectiveResolution.profile
+    val isManual = effectiveResolution.source == com.cryptxploit.classmode.domain.model.ResolutionSource.MANUAL_OVERRIDE
     val contextSnapshot by viewModel.contextSnapshot.collectAsStateWithLifecycle()
     val healthStatus by viewModel.healthStatus.collectAsStateWithLifecycle()
     val haptic = LocalHaptic.current
@@ -128,7 +130,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                     val infiniteTransition = rememberInfiniteTransition()
                     val scale by infiniteTransition.animateFloat(
                         initialValue = 1f,
-                        targetValue = if (contextSnapshot?.userOverride != null) 1.05f else 1f,
+                        targetValue = if (isManual) 1.05f else 1f,
                         animationSpec = infiniteRepeatable(
                             animation = tween(1200, easing = LinearEasing),
                             repeatMode = RepeatMode.Reverse
@@ -172,7 +174,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                     )
                     
                     // State label (Manual vs Auto)
-                    val isManual = contextSnapshot?.userOverride != null
+                    
                     val stateLabelColor = if (isManual) ClassModeTheme.semanticColors.statusVibrate else ClassModeTheme.semanticColors.statusInactive
                     
                     Surface(
@@ -235,7 +237,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                 QuickActionCard(
                     modifier = Modifier.weight(1f),
                     title = "Silent",
-                    isSelected = contextSnapshot?.userOverride == SoundProfile.SILENT,
+                    isSelected = isManual && effectiveProfile == SoundProfile.SILENT,
                     semanticColor = ClassModeTheme.semanticColors.statusSilent,
                     onClick = {
                         haptic.performClickEffect()
@@ -245,7 +247,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                 QuickActionCard(
                     modifier = Modifier.weight(1f),
                     title = "Vibrate",
-                    isSelected = contextSnapshot?.userOverride == SoundProfile.VIBRATE,
+                    isSelected = isManual && effectiveProfile == SoundProfile.VIBRATE,
                     semanticColor = ClassModeTheme.semanticColors.statusVibrate,
                     onClick = {
                         haptic.performClickEffect()
@@ -255,7 +257,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                 QuickActionCard(
                     modifier = Modifier.weight(1f),
                     title = "Normal",
-                    isSelected = contextSnapshot?.userOverride == SoundProfile.NORMAL,
+                    isSelected = isManual && effectiveProfile == SoundProfile.NORMAL,
                     semanticColor = ClassModeTheme.semanticColors.statusNormal,
                     onClick = {
                         haptic.performClickEffect()
