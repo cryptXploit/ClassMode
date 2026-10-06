@@ -21,12 +21,15 @@ class GeofenceManager(private val context: Context) {
 
     private val geofencePendingIntent: PendingIntent by lazy {
         val intent = Intent(context, GeofenceReceiver::class.java)
-        PendingIntent.getBroadcast(
-            context,
-            0,
-            intent,
+        
+        // Geofence PendingIntents must be mutable on Android 12+ per Google Play guidelines
+        val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-        )
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+        
+        PendingIntent.getBroadcast(context, 0, intent, flags)
     }
 
     @SuppressLint("MissingPermission")
@@ -41,11 +44,14 @@ class GeofenceManager(private val context: Context) {
                 geofenceEntity.radiusMeters
             )
             .setExpirationDuration(Geofence.NEVER_EXPIRE)
-            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
+            // Added DWELL to ensure stable connection within the boundary, resisting GPS bounce
+            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT or Geofence.GEOFENCE_TRANSITION_DWELL)
+            .setLoiteringDelay(30000) // 30 seconds to confirm dwell
             .build()
 
         val geofencingRequest = GeofencingRequest.Builder()
-            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+            // Ensure initial detection captures the user if they create the rule while already inside the boundary
+            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER or GeofencingRequest.INITIAL_TRIGGER_DWELL)
             .addGeofence(geofence)
             .build()
 
@@ -73,7 +79,7 @@ class GeofenceManager(private val context: Context) {
             geofencingClient.removeGeofences(geofencePendingIntent).await()
             true
         } catch (e: Exception) {
-            android.util.Log.e("GeofenceManager", "Failed to clear all geofences due to exception: $e", e)
+            Log.e("GeofenceManager", "Failed to clear all geofences", e)
             false
         }
     }
@@ -86,7 +92,3 @@ class GeofenceManager(private val context: Context) {
         return fineLocation && backgroundLocation
     }
 }
-
-
-
-
