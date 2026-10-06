@@ -141,4 +141,18 @@ class AutomationAcceptanceTest {
         )
         assertEquals(SoundProfile.DND, resolver.resolve(snapshot).profile)
     }
+
+    // Tie-breaker test
+    @Test
+    fun `multiple overlapping rules of same priority resolve deterministically via ID sort`() {
+        val snapshot = ContextSnapshot(
+            activeSessions = listOf(
+                ActiveSession("rule_B", SessionType.CLASS, false, SoundProfile.VIBRATE),
+                ActiveSession("rule_A", SessionType.CLASS, false, SoundProfile.SILENT)
+            ),
+            defaultPreference = SoundProfile.NORMAL
+        )
+        // rule_A comes first alphabetically, so SILENT wins.
+        assertEquals(SoundProfile.SILENT, resolver.resolve(snapshot).profile)
+    }
 }
